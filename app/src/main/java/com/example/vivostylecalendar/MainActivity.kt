@@ -1320,8 +1320,7 @@ private fun ensureHolidayYearLoaded(year: Int) {
             saved
         }
 
-        refreshCalendar()
-        updateInformation()
+        
 
         return
     }

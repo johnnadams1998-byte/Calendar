@@ -101,7 +101,9 @@ class MainActivity : Activity() {
         val name: String,
         val detail: String
     )
-
+private val holidayCache = mutableMapOf<Int, List<Holiday>>()
+private val holidayLoadsInProgress = mutableSetOf<Int>()
+private val holidayPrefsName = "calendar_holiday_cache"
     /*
      * 2026 Indian holidays and major festivals.
      */

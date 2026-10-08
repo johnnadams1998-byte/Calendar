@@ -12,169 +12,444 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 class MainActivity : Activity() {
-    private val month = Calendar.getInstance()
-    private val today = Calendar.getInstance()
-    private var selected = Calendar.getInstance()
-    private lateinit var title: TextView
-    private lateinit var grid: GridLayout
-    private lateinit var info: TextView
 
-    private val bg = Color.rgb(250, 247, 250)
-    private val text = Color.rgb(75, 75, 75)
-    private val muted = Color.rgb(170, 170, 170)
-    private val accent = Color.rgb(80, 145, 220)
-    private val selectedGray = Color.rgb(105, 105, 105)
+    private val calendar = Calendar.getInstance()
+    private val today = Calendar.getInstance()
+    private var selectedDate = Calendar.getInstance()
+
+    private lateinit var monthTitle: TextView
+    private lateinit var calendarGrid: LinearLayout
+    private lateinit var infoText: TextView
+    private lateinit var eventsArea: LinearLayout
+
+    private val bgColor = Color.rgb(250, 250, 250)
+    private val textColor = Color.rgb(45, 45, 45)
+    private val secondaryColor = Color.rgb(110, 110, 110)
+    private val blueColor = Color.rgb(70, 130, 220)
+    private val selectedColor = Color.rgb(90, 90, 90)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor = bg
-        window.navigationBarColor = bg
-        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
-        build()
-        render()
+
+        window.statusBarColor = Color.WHITE
+        window.navigationBarColor = Color.WHITE
+        window.decorView.systemUiVisibility =
+            View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or
+            View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+
+        calendar.firstDayOfWeek = Calendar.SUNDAY
+
+        buildScreen()
+        updateCalendar()
     }
 
-    private fun tv(s: String, size: Float, color: Int = text): TextView =
-        TextView(this).apply {
-            text = s; textSize = size; setTextColor(color)
-            gravity = Gravity.CENTER_VERTICAL
-            includeFontPadding = true
+    private fun buildScreen() {
+
+        val root = LinearLayout(this)
+        root.orientation = LinearLayout.VERTICAL
+        root.setBackgroundColor(bgColor)
+        root.setPadding(dp(18), dp(8), dp(18), 0)
+
+        // ---------------- HEADER ----------------
+
+        val header = LinearLayout(this)
+        header.orientation = LinearLayout.HORIZONTAL
+        header.gravity = Gravity.CENTER_VERTICAL
+
+        monthTitle = TextView(this)
+        monthTitle.textSize = 27f
+        monthTitle.setTextColor(textColor)
+        monthTitle.typeface = Typeface.create("sans-serif", Typeface.BOLD)
+
+        header.addView(
+            monthTitle,
+            LinearLayout.LayoutParams(0, dp(58), 1f)
+        )
+
+        val todayButton = makeHeaderButton("▣")
+        todayButton.setOnClickListener {
+            calendar.time = today.time
+            selectedDate.time = today.time
+            updateCalendar()
         }
 
-    private fun build() {
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setBackgroundColor(bg)
-            setPadding(22, 12, 22, 8)
+        val addButton = makeHeaderButton("+")
+        addButton.setOnClickListener {
+            Toast.makeText(this, "Add event", Toast.LENGTH_SHORT).show()
         }
 
-        val top = LinearLayout(this).apply {
-            gravity = Gravity.CENTER_VERTICAL
+        val menuButton = makeHeaderButton("⋮")
+        menuButton.setOnClickListener {
+            Toast.makeText(this, "Calendar menu", Toast.LENGTH_SHORT).show()
         }
-        title = tv("", 27f).apply { typeface = Typeface.create("sans", Typeface.NORMAL) }
 
-        val calButton = tv("▣", 22f).apply {
-            gravity = Gravity.CENTER
-            setOnClickListener { month.time = today.time; selected.time = today.time; render() }
+        header.addView(todayButton)
+        header.addView(addButton)
+        header.addView(menuButton)
+
+        root.addView(header)
+
+        // ---------------- WEEKDAYS ----------------
+
+        val weekdays = LinearLayout(this)
+        weekdays.orientation = LinearLayout.HORIZONTAL
+        weekdays.gravity = Gravity.CENTER
+
+        val names = arrayOf(
+            "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
+        )
+
+        for (name in names) {
+            val day = TextView(this)
+            day.text = name
+            day.textSize = 13f
+            day.setTextColor(secondaryColor)
+            day.gravity = Gravity.CENTER
+            day.typeface = Typeface.DEFAULT
+
+            weekdays.addView(
+                day,
+                LinearLayout.LayoutParams(0, dp(34), 1f)
+            )
         }
-        val addButton = tv("+", 34f).apply {
-            gravity = Gravity.CENTER
-            setOnClickListener { /* reserved for future events */ }
-        }
-        val more = tv("⋮", 28f).apply { gravity = Gravity.CENTER }
 
-        top.addView(title, LinearLayout.LayoutParams(0, 58, 1f))
-        top.addView(calButton, LinearLayout.LayoutParams(48, 58))
-        top.addView(addButton, LinearLayout.LayoutParams(48, 58))
-        top.addView(more, LinearLayout.LayoutParams(38, 58))
-        root.addView(top)
+        root.addView(weekdays)
 
-        val week = GridLayout(this).apply { columnCount = 7 }
-        listOf("Sun","Mon","Tue","Wed","Thu","Fri","Sat").forEach {
-            val v = tv(it, 13f, muted)
-            v.gravity = Gravity.CENTER
-            week.addView(v, cell(42))
-        }
-        root.addView(week)
+        // ---------------- CALENDAR ----------------
 
-        grid = GridLayout(this).apply { columnCount = 7; useDefaultMargins = false }
-        root.addView(grid, LinearLayout.LayoutParams(-1, 0, 1f))
+        calendarGrid = LinearLayout(this)
+        calendarGrid.orientation = LinearLayout.VERTICAL
 
-        info = tv("", 15f, text)
-        info.setPadding(4, 8, 0, 10)
-        root.addView(info, LinearLayout.LayoutParams(-1, 42))
+        root.addView(
+            calendarGrid,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                0,
+                1f
+            )
+        )
 
-        val nav = LinearLayout(this).apply { gravity = Gravity.CENTER }
-        nav.addView(navItem("⌂", "Home", true), LinearLayout.LayoutParams(0, 64, 1f))
-        nav.addView(navItem("☑", "Event", false), LinearLayout.LayoutParams(0, 64, 1f))
-        nav.addView(navItem("⚙", "Settings", false), LinearLayout.LayoutParams(0, 64, 1f))
-        root.addView(nav)
+        // ---------------- INFO ----------------
+
+        infoText = TextView(this)
+        infoText.textSize = 14f
+        infoText.setTextColor(secondaryColor)
+        infoText.gravity = Gravity.CENTER_VERTICAL
+        infoText.setPadding(dp(4), 0, dp(4), 0)
+
+        root.addView(
+            infoText,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(42)
+            )
+        )
+
+        // ---------------- EVENTS ----------------
+
+        eventsArea = LinearLayout(this)
+        eventsArea.orientation = LinearLayout.VERTICAL
+        eventsArea.setPadding(0, dp(2), 0, 0)
+
+        root.addView(
+            eventsArea,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(105)
+            )
+        )
+
+        // ---------------- BOTTOM NAVIGATION ----------------
+
+        val navigation = LinearLayout(this)
+        navigation.orientation = LinearLayout.HORIZONTAL
+        navigation.gravity = Gravity.CENTER
+
+        navigation.addView(
+            makeNavigationItem("⌂", "Home", true),
+            LinearLayout.LayoutParams(0, dp(68), 1f)
+        )
+
+        navigation.addView(
+            makeNavigationItem("□", "Event", false),
+            LinearLayout.LayoutParams(0, dp(68), 1f)
+        )
+
+        navigation.addView(
+            makeNavigationItem("⚙", "Settings", false),
+            LinearLayout.LayoutParams(0, dp(68), 1f)
+        )
+
+        root.addView(navigation)
 
         setContentView(root)
     }
 
-    private fun navItem(icon: String, label: String, active: Boolean): LinearLayout {
-        return LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            val i = tv(icon, 23f, if (active) accent else muted)
-            i.gravity = Gravity.CENTER
-            val l = tv(label, 11f, if (active) accent else muted)
-            l.gravity = Gravity.CENTER
-            addView(i, LinearLayout.LayoutParams(-1, 32))
-            addView(l, LinearLayout.LayoutParams(-1, 25))
-        }
-    }
+    private fun updateCalendar() {
 
-    private fun cell(height: Int): GridLayout.LayoutParams =
-        GridLayout.LayoutParams().apply {
-            width = 0; this.height = height
-            columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
-        }
+        val monthFormat = SimpleDateFormat("MMM yyyy", Locale.getDefault())
+        monthTitle.text = monthFormat.format(calendar.time)
 
-    private fun render() {
-        title.text = SimpleDateFormat("MMM yyyy", Locale.getDefault()).format(month.time)
-        grid.removeAllViews()
+        calendarGrid.removeAllViews()
 
-        val first = month.clone() as Calendar
-        first.set(Calendar.DAY_OF_MONTH, 1)
-        val offset = first.get(Calendar.DAY_OF_WEEK) - 1
-        val days = month.getActualMaximum(Calendar.DAY_OF_MONTH)
+        val firstDay = Calendar.getInstance()
+        firstDay.time = calendar.time
+        firstDay.set(Calendar.DAY_OF_MONTH, 1)
 
-        repeat(offset) { grid.addView(Space(this), cell(72)) }
+        val startDay = firstDay.get(Calendar.DAY_OF_WEEK) - 1
+        val daysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
 
-        for (d in 1..days) {
-            val c = month.clone() as Calendar
-            c.set(Calendar.DAY_OF_MONTH, d)
-            val selectedDay = same(c, selected)
-            val todayDay = same(c, today)
+        var dayNumber = 1
 
-            val v = tv(d.toString(), 17f, when {
-                selectedDay -> Color.WHITE
-                todayDay -> accent
-                else -> text
-            })
-            v.gravity = Gravity.CENTER
+        for (week in 0 until 6) {
 
-            if (selectedDay) {
-                v.background = GradientDrawable().apply {
-                    shape = GradientDrawable.OVAL
-                    setColor(selectedGray)
+            val row = LinearLayout(this)
+            row.orientation = LinearLayout.HORIZONTAL
+            row.gravity = Gravity.CENTER_VERTICAL
+
+            for (column in 0 until 7) {
+
+                val cell = FrameLayout(this)
+
+                val cellParams = LinearLayout.LayoutParams(
+                    0,
+                    dp(55),
+                    1f
+                )
+
+                val position = week * 7 + column
+
+                if (position >= startDay && dayNumber <= daysInMonth) {
+
+                    val dayValue = dayNumber
+
+                    val dayText = TextView(this)
+                    dayText.text = dayValue.toString()
+                    dayText.textSize = 16f
+                    dayText.gravity = Gravity.CENTER
+                    dayText.setTextColor(textColor)
+
+                    val selected =
+                        selectedDate.get(Calendar.YEAR) == calendar.get(Calendar.YEAR) &&
+                        selectedDate.get(Calendar.MONTH) == calendar.get(Calendar.MONTH) &&
+                        selectedDate.get(Calendar.DAY_OF_MONTH) == dayValue
+
+                    val isToday =
+                        today.get(Calendar.YEAR) == calendar.get(Calendar.YEAR) &&
+                        today.get(Calendar.MONTH) == calendar.get(Calendar.MONTH) &&
+                        today.get(Calendar.DAY_OF_MONTH) == dayValue
+
+                    if (selected) {
+                        val circle = GradientDrawable()
+                        circle.shape = GradientDrawable.OVAL
+                        circle.setColor(selectedColor)
+
+                        dayText.background = circle
+                        dayText.setTextColor(Color.WHITE)
+
+                        val size = dp(40)
+
+                        val params = FrameLayout.LayoutParams(size, size)
+                        params.gravity = Gravity.CENTER
+                        cell.addView(dayText, params)
+
+                    } else {
+
+                        if (isToday) {
+                            dayText.setTextColor(blueColor)
+                            dayText.typeface =
+                                Typeface.create("sans-serif", Typeface.BOLD)
+                        }
+
+                        val params = FrameLayout.LayoutParams(
+                            dp(40),
+                            dp(40)
+                        )
+                        params.gravity = Gravity.CENTER
+
+                        cell.addView(dayText, params)
+                    }
+
+                    cell.setOnClickListener {
+                        selectedDate = Calendar.getInstance()
+                        selectedDate.set(
+                            calendar.get(Calendar.YEAR),
+                            calendar.get(Calendar.MONTH),
+                            dayValue
+                        )
+
+                        updateCalendar()
+                    }
+
+                    dayNumber++
                 }
+
+                row.addView(cell, cellParams)
             }
 
-            v.setOnClickListener {
-                selected.time = c.time
-                render()
-            }
-            grid.addView(v, cell(72))
+            calendarGrid.addView(row)
         }
 
         updateInfo()
+        updateEvents()
     }
 
     private fun updateInfo() {
-        val a = Calendar.getInstance().apply {
-            time = today.time
-            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+
+        val selected = Calendar.getInstance()
+        selected.time = selectedDate.time
+
+        val difference =
+            ((selected.timeInMillis - today.timeInMillis) / 86400000L).toInt()
+
+        val text = when {
+            difference == 0 -> "Today"
+            difference > 0 -> "In $difference day(s)"
+            else -> "${-difference} day(s) ago"
         }
-        val b = Calendar.getInstance().apply {
-            time = selected.time
-            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-        }
-        val diff = ((b.timeInMillis - a.timeInMillis) / 86400000L).toInt()
-        val distance = when {
-            diff == 0 -> "Today"
-            diff > 0 -> "In $diff day(s)"
-            else -> "${-diff} day(s) ago"
-        }
-        val week = b.get(Calendar.WEEK_OF_YEAR)
-        info.text = "$distance    Week $week"
+
+        val weekNumber =
+            selected.get(Calendar.WEEK_OF_YEAR)
+
+        infoText.text = "$text                                      Week $weekNumber"
     }
 
-    private fun same(a: Calendar, b: Calendar): Boolean =
-        a.get(Calendar.YEAR) == b.get(Calendar.YEAR) &&
-        a.get(Calendar.DAY_OF_YEAR) == b.get(Calendar.DAY_OF_YEAR)
+    private fun updateEvents() {
+
+        eventsArea.removeAllViews()
+
+        // Matches the event shown in the Vivo-style reference
+        if (
+            selectedDate.get(Calendar.YEAR) == 2026 &&
+            selectedDate.get(Calendar.MONTH) == Calendar.DECEMBER &&
+            selectedDate.get(Calendar.DAY_OF_MONTH) == 23
+        ) {
+
+            addEvent("Hazarat Ali's Birthday")
+            addEvent("Hazarat Ali's Birthday")
+
+        } else {
+
+            val empty = TextView(this)
+            empty.text = "No events"
+            empty.textSize = 14f
+            empty.setTextColor(Color.GRAY)
+            empty.gravity = Gravity.CENTER_VERTICAL
+            empty.setPadding(dp(8), 0, 0, 0)
+
+            eventsArea.addView(
+                empty,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    dp(50)
+                )
+            )
+        }
+    }
+
+    private fun addEvent(title: String) {
+
+        val row = LinearLayout(this)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = Gravity.CENTER_VERTICAL
+
+        val time = TextView(this)
+        time.text = "All day"
+        time.textSize = 12f
+        time.setTextColor(secondaryColor)
+        time.gravity = Gravity.CENTER
+
+        row.addView(
+            time,
+            LinearLayout.LayoutParams(dp(55), dp(48))
+        )
+
+        val line = View(this)
+        line.setBackgroundColor(Color.rgb(70, 170, 110))
+
+        row.addView(
+            line,
+            LinearLayout.LayoutParams(dp(3), dp(38))
+        )
+
+        val titleText = TextView(this)
+        titleText.text = title
+        titleText.textSize = 15f
+        titleText.setTextColor(textColor)
+        titleText.gravity = Gravity.CENTER_VERTICAL
+        titleText.setPadding(dp(12), 0, 0, 0)
+
+        row.addView(
+            titleText,
+            LinearLayout.LayoutParams(
+                0,
+                dp(48),
+                1f
+            )
+        )
+
+        eventsArea.addView(row)
+    }
+
+    private fun makeHeaderButton(symbol: String): TextView {
+
+        val button = TextView(this)
+
+        button.text = symbol
+        button.textSize = if (symbol == "+") 28f else 21f
+        button.setTextColor(textColor)
+        button.gravity = Gravity.CENTER
+        button.setPadding(dp(6), 0, dp(6), 0)
+
+        return button
+    }
+
+    private fun makeNavigationItem(
+        icon: String,
+        label: String,
+        selected: Boolean
+    ): LinearLayout {
+
+        val container = LinearLayout(this)
+        container.orientation = LinearLayout.VERTICAL
+        container.gravity = Gravity.CENTER
+
+        val iconText = TextView(this)
+        iconText.text = icon
+        iconText.textSize = 21f
+        iconText.gravity = Gravity.CENTER
+        iconText.setTextColor(
+            if (selected) blueColor else secondaryColor
+        )
+
+        val labelText = TextView(this)
+        labelText.text = label
+        labelText.textSize = 12f
+        labelText.gravity = Gravity.CENTER
+        labelText.setTextColor(
+            if (selected) blueColor else secondaryColor
+        )
+
+        container.addView(
+            iconText,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(32)
+            )
+        )
+
+        container.addView(
+            labelText,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(24)
+            )
+        )
+
+        return container
+    }
+
+    private fun dp(value: Int): Int {
+        return (value * resources.displayMetrics.density).toInt()
+    }
 }

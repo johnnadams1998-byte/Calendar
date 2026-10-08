@@ -5,10 +5,12 @@ import android.app.AlertDialog
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
+import android.view.WindowInsets
 import android.widget.*
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -20,51 +22,74 @@ import kotlin.math.abs
 
 class MainActivity : Activity() {
 
-    // ------------------------------------------------------------
+    // ============================================================
     // DATE
-    // ------------------------------------------------------------
+    // ============================================================
 
     private val today = LocalDate.now()
-    private var selectedDate = today
-    private var displayedMonth = YearMonth.from(today)
 
-    // ------------------------------------------------------------
+    private var selectedDate = today
+
+    private var displayedMonth =
+        YearMonth.from(today)
+
+    // ============================================================
     // UI
-    // ------------------------------------------------------------
+    // ============================================================
 
     private lateinit var root: LinearLayout
+
     private lateinit var contentArea: FrameLayout
+
     private lateinit var monthTitle: TextView
+
     private lateinit var calendarGrid: LinearLayout
+
     private lateinit var infoText: TextView
+
     private lateinit var eventsArea: LinearLayout
 
     private lateinit var homeTab: LinearLayout
+
     private lateinit var eventTab: LinearLayout
+
     private lateinit var settingsTab: LinearLayout
 
     private var downX = 0f
 
-    // ------------------------------------------------------------
+    // ============================================================
     // COLORS
-    // ------------------------------------------------------------
+    // ============================================================
 
-    private var backgroundColor = Color.rgb(250, 250, 250)
-    private var primaryTextColor = Color.rgb(38, 38, 38)
-    private var secondaryTextColor = Color.rgb(90, 90, 90)
+    private var backgroundColor =
+        Color.rgb(250, 250, 250)
 
-    private var accentColor = Color.rgb(55, 115, 215)
-    private var selectedColor = Color.rgb(82, 82, 82)
-    private var dividerColor = Color.rgb(225, 225, 225)
+    private var primaryTextColor =
+        Color.rgb(40, 40, 40)
+
+    private var secondaryTextColor =
+        Color.rgb(90, 90, 90)
+
+    private var accentColor =
+        Color.rgb(55, 115, 215)
+
+    private var selectedColor =
+        Color.rgb(82, 82, 82)
+
+    private var dividerColor =
+        Color.rgb(225, 225, 225)
 
     private var currentTheme = "Light"
 
-    private val prefsName = "calendar_preferences"
-    private val themeKey = "theme"
+    private val prefsName =
+        "calendar_preferences"
 
-    // ------------------------------------------------------------
-    // HOLIDAY MODEL
-    // ------------------------------------------------------------
+    private val themeKey =
+        "theme"
+
+    // ============================================================
+    // HOLIDAY DATA
+    // ============================================================
 
     data class Holiday(
         val month: Int,
@@ -73,115 +98,447 @@ class MainActivity : Activity() {
         val detail: String
     )
 
-    // 2026 India holidays / festivals.
-    private val indiaHolidays2026 = listOf(
+    /*
+     * 2026 Indian holidays and major festivals.
+     *
+     * The dates are stored separately from the calendar UI,
+     * so more years can be added later without changing
+     * the calendar layout.
+     */
 
-        Holiday(1, 1, "New Year's Day", "Indian observance"),
-        Holiday(1, 13, "Lohri", "Indian festival"),
-        Holiday(1, 14, "Makar Sankranti", "Indian festival"),
-        Holiday(1, 14, "Pongal", "Indian festival"),
-        Holiday(1, 23, "Vasant Panchami", "Indian festival"),
-        Holiday(1, 26, "Republic Day", "National holiday"),
+    private val indiaHolidays2026 =
+        listOf(
 
-        Holiday(2, 1, "Guru Ravidas Jayanti", "Indian observance"),
-        Holiday(2, 15, "Maha Shivaratri", "Indian festival"),
-        Holiday(2, 19, "Shivaji Jayanti", "Indian observance"),
-        Holiday(2, 19, "Ramadan Start", "Indian observance"),
+            Holiday(
+                1,
+                1,
+                "New Year's Day",
+                "Indian observance"
+            ),
 
-        Holiday(3, 3, "Holika Dahana", "Indian festival"),
-        Holiday(3, 4, "Holi", "Indian festival"),
-        Holiday(3, 19, "Ugadi", "Indian festival"),
-        Holiday(3, 19, "Gudi Padwa", "Indian festival"),
-        Holiday(3, 21, "Ramzan Id", "Indian festival"),
-        Holiday(3, 26, "Rama Navami", "Indian festival"),
-        Holiday(3, 31, "Mahavir Jayanti", "Indian festival"),
+            Holiday(
+                1,
+                13,
+                "Lohri",
+                "Indian festival"
+            ),
 
-        Holiday(4, 3, "Good Friday", "Gazetted holiday"),
-        Holiday(4, 14, "Vaisakhi", "Indian festival"),
-        Holiday(4, 14, "Vishu", "Indian festival"),
-        Holiday(4, 14, "Tamil New Year", "Indian festival"),
-        Holiday(4, 14, "Ambedkar Jayanti", "Indian observance"),
+            Holiday(
+                1,
+                14,
+                "Makar Sankranti",
+                "Indian festival"
+            ),
 
-        Holiday(5, 1, "Buddha Purnima", "Indian festival"),
-        Holiday(5, 1, "International Workers' Day", "Observance"),
-        Holiday(5, 28, "Bakrid", "Indian festival"),
+            Holiday(
+                1,
+                14,
+                "Pongal",
+                "Indian festival"
+            ),
 
-        Holiday(6, 26, "Muharram / Ashura", "Indian observance"),
+            Holiday(
+                1,
+                23,
+                "Vasant Panchami",
+                "Indian festival"
+            ),
 
-        Holiday(7, 16, "Rath Yatra", "Indian festival"),
-        Holiday(7, 29, "Guru Purnima", "Indian festival"),
+            Holiday(
+                1,
+                26,
+                "Republic Day",
+                "National holiday"
+            ),
 
-        Holiday(8, 15, "Independence Day", "National holiday"),
-        Holiday(8, 15, "Parsi New Year", "Indian observance"),
-        Holiday(8, 26, "Onam", "Indian festival"),
-        Holiday(8, 26, "Milad un-Nabi", "Indian observance"),
-        Holiday(8, 28, "Raksha Bandhan", "Indian festival"),
+            Holiday(
+                2,
+                1,
+                "Guru Ravidas Jayanti",
+                "Indian observance"
+            ),
 
-        Holiday(9, 4, "Janmashtami", "Indian festival"),
-        Holiday(9, 14, "Ganesh Chaturthi", "Indian festival"),
+            Holiday(
+                2,
+                15,
+                "Maha Shivaratri",
+                "Indian festival"
+            ),
 
-        Holiday(10, 2, "Mahatma Gandhi Jayanti", "National holiday"),
-        Holiday(10, 11, "Sharad Navratri Begins", "Indian festival"),
-        Holiday(10, 17, "Durga Puja Begins", "Indian festival"),
-        Holiday(10, 18, "Maha Saptami", "Indian festival"),
-        Holiday(10, 19, "Maha Ashtami", "Indian festival"),
-        Holiday(10, 20, "Dussehra", "National holiday"),
-        Holiday(10, 26, "Maharishi Valmiki Jayanti", "Indian observance"),
-        Holiday(10, 29, "Karaka Chaturthi", "Indian festival"),
+            Holiday(
+                2,
+                19,
+                "Shivaji Jayanti",
+                "Indian observance"
+            ),
 
-        Holiday(11, 8, "Naraka Chaturdasi", "Indian festival"),
-        Holiday(11, 8, "Diwali / Deepavali", "Indian festival"),
-        Holiday(11, 9, "Govardhan Puja", "Indian festival"),
-        Holiday(11, 11, "Bhai Duj", "Indian festival"),
-        Holiday(11, 15, "Chhath Puja", "Indian festival"),
-        Holiday(11, 24, "Guru Nanak Jayanti", "Indian festival"),
-        Holiday(11, 24, "Guru Tegh Bahadur Martyrdom Day", "Indian observance"),
+            Holiday(
+                2,
+                19,
+                "Ramadan Start",
+                "Indian observance"
+            ),
 
-        Holiday(12, 23, "Hazarat Ali's Birthday", "Indian observance"),
-        Holiday(12, 24, "Christmas Eve", "Indian observance"),
-        Holiday(12, 25, "Christmas", "National holiday")
-    )
+            Holiday(
+                3,
+                3,
+                "Holika Dahana",
+                "Indian festival"
+            ),
 
-    // ------------------------------------------------------------
-    // ACTIVITY
-    // ------------------------------------------------------------
+            Holiday(
+                3,
+                4,
+                "Holi",
+                "Indian festival"
+            ),
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+            Holiday(
+                3,
+                19,
+                "Ugadi",
+                "Indian festival"
+            ),
+
+            Holiday(
+                3,
+                19,
+                "Gudi Padwa",
+                "Indian festival"
+            ),
+
+            Holiday(
+                3,
+                21,
+                "Ramzan Id",
+                "Indian festival"
+            ),
+
+            Holiday(
+                3,
+                26,
+                "Rama Navami",
+                "Indian festival"
+            ),
+
+            Holiday(
+                3,
+                31,
+                "Mahavir Jayanti",
+                "Indian festival"
+            ),
+
+            Holiday(
+                4,
+                3,
+                "Good Friday",
+                "Gazetted holiday"
+            ),
+
+            Holiday(
+                4,
+                14,
+                "Vaisakhi",
+                "Indian festival"
+            ),
+
+            Holiday(
+                4,
+                14,
+                "Vishu",
+                "Indian festival"
+            ),
+
+            Holiday(
+                4,
+                14,
+                "Tamil New Year",
+                "Indian festival"
+            ),
+
+            Holiday(
+                4,
+                14,
+                "Ambedkar Jayanti",
+                "Indian observance"
+            ),
+
+            Holiday(
+                5,
+                1,
+                "Buddha Purnima",
+                "Indian festival"
+            ),
+
+            Holiday(
+                5,
+                1,
+                "International Workers' Day",
+                "Observance"
+            ),
+
+            Holiday(
+                5,
+                28,
+                "Bakrid",
+                "Indian festival"
+            ),
+
+            Holiday(
+                6,
+                26,
+                "Muharram / Ashura",
+                "Indian observance"
+            ),
+
+            Holiday(
+                7,
+                16,
+                "Rath Yatra",
+                "Indian festival"
+            ),
+
+            Holiday(
+                7,
+                29,
+                "Guru Purnima",
+                "Indian festival"
+            ),
+
+            Holiday(
+                8,
+                15,
+                "Independence Day",
+                "National holiday"
+            ),
+
+            Holiday(
+                8,
+                15,
+                "Parsi New Year",
+                "Indian observance"
+            ),
+
+            Holiday(
+                8,
+                26,
+                "Onam",
+                "Indian festival"
+            ),
+
+            Holiday(
+                8,
+                26,
+                "Milad un-Nabi",
+                "Indian observance"
+            ),
+
+            Holiday(
+                8,
+                28,
+                "Raksha Bandhan",
+                "Indian festival"
+            ),
+
+            Holiday(
+                9,
+                4,
+                "Janmashtami",
+                "Indian festival"
+            ),
+
+            Holiday(
+                9,
+                14,
+                "Ganesh Chaturthi",
+                "Indian festival"
+            ),
+
+            Holiday(
+                10,
+                2,
+                "Mahatma Gandhi Jayanti",
+                "National holiday"
+            ),
+
+            Holiday(
+                10,
+                11,
+                "Sharad Navratri Begins",
+                "Indian festival"
+            ),
+
+            Holiday(
+                10,
+                17,
+                "Durga Puja Begins",
+                "Indian festival"
+            ),
+
+            Holiday(
+                10,
+                18,
+                "Maha Saptami",
+                "Indian festival"
+            ),
+
+            Holiday(
+                10,
+                19,
+                "Maha Ashtami",
+                "Indian festival"
+            ),
+
+            Holiday(
+                10,
+                20,
+                "Dussehra",
+                "Indian festival"
+            ),
+
+            Holiday(
+                10,
+                26,
+                "Maharishi Valmiki Jayanti",
+                "Indian observance"
+            ),
+
+            Holiday(
+                10,
+                29,
+                "Karaka Chaturthi",
+                "Indian festival"
+            ),
+
+            Holiday(
+                11,
+                8,
+                "Naraka Chaturdasi",
+                "Indian festival"
+            ),
+
+            Holiday(
+                11,
+                8,
+                "Diwali / Deepavali",
+                "Indian festival"
+            ),
+
+            Holiday(
+                11,
+                9,
+                "Govardhan Puja",
+                "Indian festival"
+            ),
+
+            Holiday(
+                11,
+                11,
+                "Bhai Duj",
+                "Indian festival"
+            ),
+
+            Holiday(
+                11,
+                15,
+                "Chhath Puja",
+                "Indian festival"
+            ),
+
+            Holiday(
+                11,
+                24,
+                "Guru Nanak Jayanti",
+                "Indian festival"
+            ),
+
+            Holiday(
+                11,
+                24,
+                "Guru Tegh Bahadur Martyrdom Day",
+                "Indian observance"
+            ),
+
+            Holiday(
+                12,
+                23,
+                "Hazarat Ali's Birthday",
+                "Indian observance"
+            ),
+
+            Holiday(
+                12,
+                24,
+                "Christmas Eve",
+                "Indian observance"
+            ),
+
+            Holiday(
+                12,
+                25,
+                "Christmas",
+                "National holiday"
+            )
+        )
+
+    // ============================================================
+    // ON CREATE
+    // ============================================================
+
+    override fun onCreate(
+        savedInstanceState: Bundle?
+    ) {
+
         super.onCreate(savedInstanceState)
 
         loadTheme()
+
         configureSystemBars()
+
         buildApplication()
+
         showHome()
     }
 
-    // ------------------------------------------------------------
+    // ============================================================
     // SYSTEM BARS
-    // ------------------------------------------------------------
+    // ============================================================
 
     private fun configureSystemBars() {
 
-        window.statusBarColor = backgroundColor
-        window.navigationBarColor = backgroundColor
+        window.statusBarColor =
+            backgroundColor
+
+        window.navigationBarColor =
+            backgroundColor
 
         if (currentTheme == "Dark") {
+
             window.decorView.systemUiVisibility = 0
+
         } else {
+
             window.decorView.systemUiVisibility =
                 View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or
                         View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
         }
     }
 
-    // ------------------------------------------------------------
-    // MAIN APPLICATION
-    // ------------------------------------------------------------
+    // ============================================================
+    // BUILD APPLICATION
+    // ============================================================
 
     private fun buildApplication() {
 
-        root = LinearLayout(this)
-        root.orientation = LinearLayout.VERTICAL
-        root.setBackgroundColor(backgroundColor)
+        root =
+            LinearLayout(this)
+
+        root.orientation =
+            LinearLayout.VERTICAL
+
+        root.setBackgroundColor(
+            backgroundColor
+        )
 
         root.setPadding(
             dp(18),
@@ -190,7 +547,8 @@ class MainActivity : Activity() {
             0
         )
 
-        contentArea = FrameLayout(this)
+        contentArea =
+            FrameLayout(this)
 
         root.addView(
             contentArea,
@@ -203,37 +561,97 @@ class MainActivity : Activity() {
 
         buildBottomNavigation()
 
+        /*
+         * Keep our bottom navigation above the
+         * Motorola Android navigation / gesture area.
+         */
+
+        root.setOnApplyWindowInsetsListener {
+                view,
+                insets ->
+
+            val bottomInset: Int
+
+            if (Build.VERSION.SDK_INT >= 30) {
+
+                bottomInset =
+                    insets.getInsets(
+                        WindowInsets.Type.navigationBars()
+                    ).bottom
+
+            } else {
+
+                @Suppress("DEPRECATION")
+
+                bottomInset =
+                    insets.systemWindowInsetBottom
+            }
+
+            view.setPadding(
+                dp(18),
+                dp(10),
+                dp(18),
+                bottomInset
+            )
+
+            insets
+        }
+
         setContentView(root)
     }
 
-    // ------------------------------------------------------------
-    // HOME
-    // ------------------------------------------------------------
+    // ============================================================
+    // HOME SCREEN
+    // ============================================================
 
     private fun showHome() {
 
         contentArea.removeAllViews()
 
-        val screen = LinearLayout(this)
-        screen.orientation = LinearLayout.VERTICAL
-        screen.setBackgroundColor(backgroundColor)
+        val screen =
+            LinearLayout(this)
+
+        screen.orientation =
+            LinearLayout.VERTICAL
+
+        screen.setBackgroundColor(
+            backgroundColor
+        )
 
         // --------------------------------------------------------
         // HEADER
         // --------------------------------------------------------
 
-        val header = LinearLayout(this)
-        header.orientation = LinearLayout.HORIZONTAL
-        header.gravity = Gravity.CENTER_VERTICAL
+        val header =
+            LinearLayout(this)
 
-        monthTitle = TextView(this)
-        monthTitle.textSize = 27f
-        monthTitle.setTextColor(primaryTextColor)
+        header.orientation =
+            LinearLayout.HORIZONTAL
+
+        header.gravity =
+            Gravity.CENTER_VERTICAL
+
+        monthTitle =
+            TextView(this)
+
+        monthTitle.textSize =
+            27f
+
+        monthTitle.setTextColor(
+            primaryTextColor
+        )
+
         monthTitle.typeface =
-            Typeface.create("sans-serif", Typeface.BOLD)
-        monthTitle.gravity = Gravity.CENTER_VERTICAL
+            Typeface.create(
+                "sans-serif",
+                Typeface.BOLD
+            )
+
+        monthTitle.gravity =
+            Gravity.CENTER_VERTICAL
 
         monthTitle.setOnClickListener {
+
             showMonthYearPicker()
         }
 
@@ -250,41 +668,61 @@ class MainActivity : Activity() {
         // TODAY BOX
         // --------------------------------------------------------
 
-        val todayButton = createTodayButton()
+        val todayButton =
+            createTodayButton()
 
         todayButton.setOnClickListener {
 
-            displayedMonth = YearMonth.from(today)
-            selectedDate = today
+            displayedMonth =
+                YearMonth.from(today)
+
+            selectedDate =
+                today
 
             refreshCalendar()
         }
 
-        header.addView(todayButton)
+        header.addView(
+            todayButton
+        )
 
         // --------------------------------------------------------
-        // PLUS
+        // ADD
         // --------------------------------------------------------
 
-        val addButton = headerButton("+", 28f)
+        val addButton =
+            headerButton(
+                "+",
+                28f
+            )
 
         addButton.setOnClickListener {
+
             showAddEventDialog()
         }
 
-        header.addView(addButton)
+        header.addView(
+            addButton
+        )
 
         // --------------------------------------------------------
         // MENU
         // --------------------------------------------------------
 
-        val menuButton = headerButton("⋮", 23f)
+        val menuButton =
+            headerButton(
+                "⋮",
+                23f
+            )
 
         menuButton.setOnClickListener {
+
             showCalendarMenu()
         }
 
-        header.addView(menuButton)
+        header.addView(
+            menuButton
+        )
 
         screen.addView(header)
 
@@ -292,28 +730,43 @@ class MainActivity : Activity() {
         // WEEKDAYS
         // --------------------------------------------------------
 
-        val weekdayRow = LinearLayout(this)
-        weekdayRow.orientation = LinearLayout.HORIZONTAL
-        weekdayRow.gravity = Gravity.CENTER
+        val weekdayRow =
+            LinearLayout(this)
 
-        val weekdays = arrayOf(
-            "Sun",
-            "Mon",
-            "Tue",
-            "Wed",
-            "Thu",
-            "Fri",
-            "Sat"
-        )
+        weekdayRow.orientation =
+            LinearLayout.HORIZONTAL
+
+        weekdayRow.gravity =
+            Gravity.CENTER
+
+        val weekdays =
+            arrayOf(
+                "Sun",
+                "Mon",
+                "Tue",
+                "Wed",
+                "Thu",
+                "Fri",
+                "Sat"
+            )
 
         for (name in weekdays) {
 
-            val day = TextView(this)
+            val day =
+                TextView(this)
 
-            day.text = name
-            day.textSize = 13f
-            day.setTextColor(secondaryTextColor)
-            day.gravity = Gravity.CENTER
+            day.text =
+                name
+
+            day.textSize =
+                13f
+
+            day.setTextColor(
+                secondaryTextColor
+            )
+
+            day.gravity =
+                Gravity.CENTER
 
             weekdayRow.addView(
                 day,
@@ -325,40 +778,67 @@ class MainActivity : Activity() {
             )
         }
 
-        screen.addView(weekdayRow)
+        screen.addView(
+            weekdayRow
+        )
 
         // --------------------------------------------------------
         // CALENDAR GRID
         // --------------------------------------------------------
 
-        calendarGrid = LinearLayout(this)
-        calendarGrid.orientation = LinearLayout.VERTICAL
+        calendarGrid =
+            LinearLayout(this)
 
-        // IMPORTANT:
-        // Centers the whole calendar vertically instead of
-        // leaving all dates at the top.
-        calendarGrid.gravity = Gravity.CENTER_VERTICAL
+        calendarGrid.orientation =
+            LinearLayout.VERTICAL
 
-        calendarGrid.setOnTouchListener { _, event ->
+        /*
+         * IMPORTANT:
+         *
+         * Do NOT use CENTER_VERTICAL here.
+         *
+         * Each calendar row gets equal weight instead.
+         * This removes the huge blank space and keeps every
+         * date vertically centered in its own row.
+         */
+
+        calendarGrid.gravity =
+            Gravity.NO_GRAVITY
+
+        calendarGrid.setOnTouchListener {
+                _,
+                event ->
 
             when (event.action) {
 
                 MotionEvent.ACTION_DOWN -> {
-                    downX = event.x
+
+                    downX =
+                        event.x
+
                     true
                 }
 
                 MotionEvent.ACTION_UP -> {
 
-                    val difference = event.x - downX
+                    val difference =
+                        event.x - downX
 
-                    if (abs(difference) > dp(70)) {
+                    if (
+                        abs(difference) >
+                        dp(70)
+                    ) {
 
                         displayedMonth =
                             if (difference < 0) {
-                                displayedMonth.plusMonths(1)
+
+                                displayedMonth
+                                    .plusMonths(1)
+
                             } else {
-                                displayedMonth.minusMonths(1)
+
+                                displayedMonth
+                                    .minusMonths(1)
                             }
 
                         refreshCalendar()
@@ -384,11 +864,22 @@ class MainActivity : Activity() {
         // INFORMATION
         // --------------------------------------------------------
 
-        infoText = TextView(this)
+        infoText =
+            TextView(this)
 
-        infoText.textSize = 15f
-        infoText.setTextColor(secondaryTextColor)
-        infoText.gravity = Gravity.CENTER_VERTICAL
+        infoText.textSize =
+            15f
+
+        infoText.setTextColor(
+            Color.rgb(
+                75,
+                75,
+                75
+            )
+        )
+
+        infoText.gravity =
+            Gravity.CENTER_VERTICAL
 
         screen.addView(
             infoText,
@@ -402,8 +893,11 @@ class MainActivity : Activity() {
         // EVENTS
         // --------------------------------------------------------
 
-        eventsArea = LinearLayout(this)
-        eventsArea.orientation = LinearLayout.VERTICAL
+        eventsArea =
+            LinearLayout(this)
+
+        eventsArea.orientation =
+            LinearLayout.VERTICAL
 
         screen.addView(
             eventsArea,
@@ -424,17 +918,21 @@ class MainActivity : Activity() {
         refreshCalendar()
     }
 
-    // ------------------------------------------------------------
-    // CALENDAR
-    // ------------------------------------------------------------
+    // ============================================================
+    // REFRESH CALENDAR
+    // ============================================================
 
     private fun refreshCalendar() {
 
-        if (!::calendarGrid.isInitialized) return
+        if (!::calendarGrid.isInitialized) {
+            return
+        }
 
         val monthName =
             displayedMonth.month.name
-                .lowercase(Locale.getDefault())
+                .lowercase(
+                    Locale.getDefault()
+                )
                 .replaceFirstChar {
                     it.uppercase()
                 }
@@ -445,53 +943,92 @@ class MainActivity : Activity() {
 
         calendarGrid.removeAllViews()
 
-        val firstDay = displayedMonth.atDay(1)
+        /*
+         * Find the first weekday.
+         */
+
+        val firstDay =
+            displayedMonth.atDay(1)
 
         val firstColumn =
             when (firstDay.dayOfWeek) {
 
-                DayOfWeek.SUNDAY -> 0
-                DayOfWeek.MONDAY -> 1
-                DayOfWeek.TUESDAY -> 2
-                DayOfWeek.WEDNESDAY -> 3
-                DayOfWeek.THURSDAY -> 4
-                DayOfWeek.FRIDAY -> 5
-                DayOfWeek.SATURDAY -> 6
+                DayOfWeek.SUNDAY ->
+                    0
+
+                DayOfWeek.MONDAY ->
+                    1
+
+                DayOfWeek.TUESDAY ->
+                    2
+
+                DayOfWeek.WEDNESDAY ->
+                    3
+
+                DayOfWeek.THURSDAY ->
+                    4
+
+                DayOfWeek.FRIDAY ->
+                    5
+
+                DayOfWeek.SATURDAY ->
+                    6
             }
 
-        val days = displayedMonth.lengthOfMonth()
+        val days =
+            displayedMonth.lengthOfMonth()
 
         val rows =
-            if (firstColumn + days <= 35) 5 else 6
+            if (
+                firstColumn + days <= 35
+            ) {
+                5
+            } else {
+                6
+            }
 
-        // Larger, more spacious calendar.
-        val rowHeight =
-            if (rows == 5) dp(67) else dp(58)
+        // ========================================================
+        // ROWS
+        // ========================================================
 
         for (rowIndex in 0 until rows) {
 
-            val row = LinearLayout(this)
+            /*
+             * Every row receives equal vertical space.
+             */
 
-            row.orientation = LinearLayout.HORIZONTAL
-            row.gravity = Gravity.CENTER_VERTICAL
+            val row =
+                LinearLayout(this)
+
+            row.orientation =
+                LinearLayout.HORIZONTAL
+
+            row.gravity =
+                Gravity.CENTER_VERTICAL
 
             calendarGrid.addView(
                 row,
                 LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    rowHeight
+                    0,
+                    1f
                 )
             )
 
+            // ====================================================
+            // CELLS
+            // ====================================================
+
             for (column in 0 until 7) {
 
-                val cell = FrameLayout(this)
+                val cell =
+                    FrameLayout(this)
 
                 row.addView(
                     cell,
                     LinearLayout.LayoutParams(
                         0,
-                        rowHeight,
+                        LinearLayout.LayoutParams.MATCH_PARENT,
                         1f
                     )
                 )
@@ -501,37 +1038,46 @@ class MainActivity : Activity() {
 
                 if (
                     position >= firstColumn &&
-                    position < firstColumn + days
+                    position <
+                    firstColumn + days
                 ) {
 
                     val number =
-                        position - firstColumn + 1
+                        position -
+                                firstColumn +
+                                1
 
                     val date =
-                        displayedMonth.atDay(number)
+                        displayedMonth.atDay(
+                            number
+                        )
 
-                    // ------------------------------------------------
+                    // ============================================
                     // DATE NUMBER
-                    // ------------------------------------------------
+                    // ============================================
 
-                    val dateText = TextView(this)
+                    val dateText =
+                        TextView(this)
 
                     dateText.text =
                         number.toString()
 
-                    dateText.textSize = 16f
+                    dateText.textSize =
+                        16f
 
                     dateText.gravity =
                         Gravity.CENTER
 
-                    dateText.includeFontPadding = true
+                    dateText.includeFontPadding =
+                        true
 
-                    dateText.setTextColor(
-                        primaryTextColor
-                    )
+                    // --------------------------------------------
+                    // SELECTED DATE
+                    // --------------------------------------------
 
-                    // Selected date
-                    if (date == selectedDate) {
+                    if (
+                        date == selectedDate
+                    ) {
 
                         val circle =
                             GradientDrawable()
@@ -550,7 +1096,11 @@ class MainActivity : Activity() {
                             Color.WHITE
                         )
 
-                    } else if (date == today) {
+                    } else if (
+                        date == today
+                    ) {
+
+                        // Today is blue.
 
                         dateText.setTextColor(
                             accentColor
@@ -561,6 +1111,18 @@ class MainActivity : Activity() {
                                 "sans-serif",
                                 Typeface.BOLD
                             )
+
+                    } else {
+
+                        // Darker normal dates.
+
+                        dateText.setTextColor(
+                            Color.rgb(
+                                45,
+                                45,
+                                45
+                            )
+                        )
                     }
 
                     val dateParams =
@@ -577,13 +1139,16 @@ class MainActivity : Activity() {
                         dateParams
                     )
 
-                    // ------------------------------------------------
-                    // HOLIDAY DOT
-                    // ------------------------------------------------
+                    // ============================================
+                    // VIVO-STYLE GREY HOLIDAY DOT
+                    // ============================================
 
-                    if (holidayFor(date).isNotEmpty()) {
+                    if (
+                        holidayFor(date).isNotEmpty()
+                    ) {
 
-                        val dot = View(this)
+                        val dot =
+                            View(this)
 
                         val dotDrawable =
                             GradientDrawable()
@@ -591,8 +1156,21 @@ class MainActivity : Activity() {
                         dotDrawable.shape =
                             GradientDrawable.OVAL
 
+                        /*
+                         * IMPORTANT:
+                         *
+                         * Holiday dots are ALWAYS grey.
+                         * No red.
+                         * No orange.
+                         * No green.
+                         */
+
                         dotDrawable.setColor(
-                            holidayColor(date)
+                            Color.rgb(
+                                175,
+                                175,
+                                175
+                            )
                         )
 
                         dot.background =
@@ -609,7 +1187,7 @@ class MainActivity : Activity() {
                                     Gravity.BOTTOM
 
                         dotParams.bottomMargin =
-                            dp(5)
+                            dp(7)
 
                         cell.addView(
                             dot,
@@ -617,13 +1195,14 @@ class MainActivity : Activity() {
                         )
                     }
 
-                    // ------------------------------------------------
+                    // ============================================
                     // CLICK
-                    // ------------------------------------------------
+                    // ============================================
 
                     cell.setOnClickListener {
 
-                        selectedDate = date
+                        selectedDate =
+                            date
 
                         refreshCalendar()
                     }
@@ -632,12 +1211,13 @@ class MainActivity : Activity() {
         }
 
         updateInformation()
+
         updateEvents()
     }
 
-    // ------------------------------------------------------------
+    // ============================================================
     // HOLIDAY LOOKUP
-    // ------------------------------------------------------------
+    // ============================================================
 
     private fun holidayFor(
         date: LocalDate
@@ -649,32 +1229,16 @@ class MainActivity : Activity() {
 
         return indiaHolidays2026.filter {
 
-            it.month == date.monthValue &&
-                    it.day == date.dayOfMonth
+            it.month ==
+                    date.monthValue &&
+                    it.day ==
+                    date.dayOfMonth
         }
     }
 
-    private fun holidayColor(
-        date: LocalDate
-    ): Int {
-
-        val list = holidayFor(date)
-
-        if (list.isEmpty()) {
-            return accentColor
-        }
-
-        return when (list.first().month) {
-
-            10 -> Color.rgb(225, 55, 65)
-            11 -> Color.rgb(245, 145, 25)
-            else -> Color.rgb(50, 165, 105)
-        }
-    }
-
-    // ------------------------------------------------------------
+    // ============================================================
     // INFORMATION
-    // ------------------------------------------------------------
+    // ============================================================
 
     private fun updateInformation() {
 
@@ -699,27 +1263,40 @@ class MainActivity : Activity() {
 
         val week =
             selectedDate.get(
-                WeekFields.ISO.weekOfWeekBasedYear()
+                WeekFields.ISO
+                    .weekOfWeekBasedYear()
             )
 
-        val left =
-            TextView(this)
+        /*
+         * Use a proper horizontal layout instead of
+         * manually inserting huge spaces.
+         */
 
         infoText.text =
             "$description                                      Week $week"
 
-        // Slightly darker than before.
         infoText.setTextColor(
-            if (currentTheme == "Dark")
-                Color.rgb(180, 180, 180)
-            else
-                Color.rgb(75, 75, 75)
+            if (
+                currentTheme == "Dark"
+            ) {
+                Color.rgb(
+                    185,
+                    185,
+                    185
+                )
+            } else {
+                Color.rgb(
+                    75,
+                    75,
+                    75
+                )
+            }
         )
     }
 
-    // ------------------------------------------------------------
+    // ============================================================
     // EVENTS
-    // ------------------------------------------------------------
+    // ============================================================
 
     private fun updateEvents() {
 
@@ -733,8 +1310,11 @@ class MainActivity : Activity() {
             val empty =
                 TextView(this)
 
-            empty.text = "No events"
-            empty.textSize = 14f
+            empty.text =
+                "No events"
+
+            empty.textSize =
+                14f
 
             empty.setTextColor(
                 secondaryTextColor
@@ -769,6 +1349,10 @@ class MainActivity : Activity() {
         }
     }
 
+    // ============================================================
+    // HOLIDAY EVENT ROW
+    // ============================================================
+
     private fun addHolidayEvent(
         holiday: Holiday
     ) {
@@ -796,8 +1380,12 @@ class MainActivity : Activity() {
         val allDay =
             TextView(this)
 
-        allDay.text = "All day"
-        allDay.textSize = 14f
+        allDay.text =
+            "All day"
+
+        allDay.textSize =
+            14f
+
         allDay.setTextColor(
             secondaryTextColor
         )
@@ -814,7 +1402,7 @@ class MainActivity : Activity() {
         )
 
         // --------------------------------------------------------
-        // COLORED LINE
+        // EVENT LINE
         // --------------------------------------------------------
 
         val line =
@@ -826,10 +1414,13 @@ class MainActivity : Activity() {
         lineDrawable.cornerRadius =
             dp(4).toFloat()
 
+        /*
+         * Event line is subtle blue/grey.
+         * The calendar dots remain grey.
+         */
+
         lineDrawable.setColor(
-            holidayColor(
-                selectedDate
-            )
+            accentColor
         )
 
         line.background =
@@ -844,7 +1435,7 @@ class MainActivity : Activity() {
         )
 
         // --------------------------------------------------------
-        // TEXT
+        // EVENT TEXT
         // --------------------------------------------------------
 
         val textBox =
@@ -869,7 +1460,8 @@ class MainActivity : Activity() {
         title.text =
             holiday.name
 
-        title.textSize = 15f
+        title.textSize =
+            15f
 
         title.setTextColor(
             primaryTextColor
@@ -887,14 +1479,20 @@ class MainActivity : Activity() {
         detail.text =
             holiday.detail
 
-        detail.textSize = 13f
+        detail.textSize =
+            13f
 
         detail.setTextColor(
             secondaryTextColor
         )
 
-        textBox.addView(title)
-        textBox.addView(detail)
+        textBox.addView(
+            title
+        )
+
+        textBox.addView(
+            detail
+        )
 
         container.addView(
             textBox,
@@ -912,8 +1510,11 @@ class MainActivity : Activity() {
         val arrow =
             TextView(this)
 
-        arrow.text = "›"
-        arrow.textSize = 25f
+        arrow.text =
+            "›"
+
+        arrow.textSize =
+            25f
 
         arrow.setTextColor(
             secondaryTextColor
@@ -939,6 +1540,7 @@ class MainActivity : Activity() {
         )
 
         // Divider
+
         val divider =
             View(this)
 
@@ -955,9 +1557,9 @@ class MainActivity : Activity() {
         )
     }
 
-    // ------------------------------------------------------------
+    // ============================================================
     // TODAY BUTTON
-    // ------------------------------------------------------------
+    // ============================================================
 
     private fun createTodayButton(): TextView {
 
@@ -966,7 +1568,9 @@ class MainActivity : Activity() {
 
         val dayName =
             today.dayOfWeek.name
-                .lowercase(Locale.getDefault())
+                .lowercase(
+                    Locale.getDefault()
+                )
                 .replaceFirstChar {
                     it.uppercase()
                 }
@@ -975,7 +1579,8 @@ class MainActivity : Activity() {
         button.text =
             "$dayName\n${today.dayOfMonth}"
 
-        button.textSize = 10f
+        button.textSize =
+            10f
 
         button.setTextColor(
             primaryTextColor
@@ -1002,45 +1607,53 @@ class MainActivity : Activity() {
             dp(8).toFloat()
 
         background.setColor(
-            if (currentTheme == "Dark")
-                Color.rgb(45, 45, 45)
-            else
+            if (
+                currentTheme == "Dark"
+            ) {
+                Color.rgb(
+                    45,
+                    45,
+                    45
+                )
+            } else {
                 Color.TRANSPARENT
+            }
         )
 
         background.setStroke(
             dp(1),
-            if (currentTheme == "Dark")
-                Color.rgb(130, 130, 130)
-            else
-                Color.rgb(60, 60, 60)
+            if (
+                currentTheme == "Dark"
+            ) {
+                Color.rgb(
+                    130,
+                    130,
+                    130
+                )
+            } else {
+                Color.rgb(
+                    60,
+                    60,
+                    60
+                )
+            }
         )
 
         button.background =
             background
 
-        val params =
+        button.layoutParams =
             LinearLayout.LayoutParams(
                 dp(48),
                 dp(52)
             )
 
-        params.setMargins(
-            dp(3),
-            0,
-            dp(3),
-            0
-        )
-
-        button.layoutParams =
-            params
-
         return button
     }
 
-    // ------------------------------------------------------------
+    // ============================================================
     // HEADER BUTTON
-    // ------------------------------------------------------------
+    // ============================================================
 
     private fun headerButton(
         symbol: String,
@@ -1050,8 +1663,11 @@ class MainActivity : Activity() {
         val button =
             TextView(this)
 
-        button.text = symbol
-        button.textSize = size
+        button.text =
+            symbol
+
+        button.textSize =
+            size
 
         button.setTextColor(
             primaryTextColor
@@ -1076,9 +1692,9 @@ class MainActivity : Activity() {
         return button
     }
 
-    // ------------------------------------------------------------
+    // ============================================================
     // MONTH / YEAR PICKER
-    // ------------------------------------------------------------
+    // ============================================================
 
     private fun showMonthYearPicker() {
 
@@ -1094,16 +1710,24 @@ class MainActivity : Activity() {
         val monthPicker =
             NumberPicker(this)
 
-        monthPicker.minValue = 1
-        monthPicker.maxValue = 12
+        monthPicker.minValue =
+            1
+
+        monthPicker.maxValue =
+            12
+
         monthPicker.value =
             displayedMonth.monthValue
 
         val yearPicker =
             NumberPicker(this)
 
-        yearPicker.minValue = 2000
-        yearPicker.maxValue = 2100
+        yearPicker.minValue =
+            2000
+
+        yearPicker.maxValue =
+            2100
+
         yearPicker.value =
             displayedMonth.year
 
@@ -1124,8 +1748,12 @@ class MainActivity : Activity() {
         )
 
         AlertDialog.Builder(this)
-            .setTitle("Select month")
-            .setView(container)
+            .setTitle(
+                "Select month"
+            )
+            .setView(
+                container
+            )
             .setNegativeButton(
                 "Cancel",
                 null
@@ -1140,13 +1768,15 @@ class MainActivity : Activity() {
                         monthPicker.value
                     )
 
-                // Keep the selected date sensible.
                 val maxDay =
-                    displayedMonth.lengthOfMonth()
+                    displayedMonth
+                        .lengthOfMonth()
 
                 val newDay =
                     selectedDate.dayOfMonth
-                        .coerceAtMost(maxDay)
+                        .coerceAtMost(
+                            maxDay
+                        )
 
                 selectedDate =
                     displayedMonth.atDay(
@@ -1158,9 +1788,9 @@ class MainActivity : Activity() {
             .show()
     }
 
-    // ------------------------------------------------------------
+    // ============================================================
     // ADD EVENT
-    // ------------------------------------------------------------
+    // ============================================================
 
     private fun showAddEventDialog() {
 
@@ -1171,8 +1801,12 @@ class MainActivity : Activity() {
             "Event name"
 
         AlertDialog.Builder(this)
-            .setTitle("Add event")
-            .setView(input)
+            .setTitle(
+                "Add event"
+            )
+            .setView(
+                input
+            )
             .setNegativeButton(
                 "Cancel",
                 null
@@ -1190,28 +1824,32 @@ class MainActivity : Activity() {
             .show()
     }
 
-    // ------------------------------------------------------------
+    // ============================================================
     // MENU
-    // ------------------------------------------------------------
+    // ============================================================
 
     private fun showCalendarMenu() {
 
         val options =
             arrayOf(
                 "Today",
-                "Select date",
+                "Select month",
                 "Settings"
             )
 
         AlertDialog.Builder(this)
-            .setItems(options) { _, which ->
+            .setItems(
+                options
+            ) { _, which ->
 
                 when (which) {
 
                     0 -> {
 
                         displayedMonth =
-                            YearMonth.from(today)
+                            YearMonth.from(
+                                today
+                            )
 
                         selectedDate =
                             today
@@ -1219,17 +1857,23 @@ class MainActivity : Activity() {
                         refreshCalendar()
                     }
 
-                    1 -> showMonthYearPicker()
+                    1 -> {
 
-                    2 -> showSettingsScreen()
+                        showMonthYearPicker()
+                    }
+
+                    2 -> {
+
+                        showSettingsScreen()
+                    }
                 }
             }
             .show()
     }
 
-    // ------------------------------------------------------------
+    // ============================================================
     // BOTTOM NAVIGATION
-    // ------------------------------------------------------------
+    // ============================================================
 
     private fun buildBottomNavigation() {
 
@@ -1248,21 +1892,21 @@ class MainActivity : Activity() {
 
         homeTab =
             navigationItem(
-                "⌂",
+                "HOME",
                 "Home",
                 true
             )
 
         eventTab =
             navigationItem(
-                "□",
+                "EVENT",
                 "Event",
                 false
             )
 
         settingsTab =
             navigationItem(
-                "⚙",
+                "SETTINGS",
                 "Settings",
                 false
             )
@@ -1295,19 +1939,26 @@ class MainActivity : Activity() {
         )
 
         homeTab.setOnClickListener {
+
             selectTab(0)
         }
 
         eventTab.setOnClickListener {
+
             selectTab(1)
         }
 
         settingsTab.setOnClickListener {
+
             selectTab(2)
         }
 
         root.addView(nav)
     }
+
+    // ============================================================
+    // NAVIGATION ITEM
+    // ============================================================
 
     private fun navigationItem(
         icon: String,
@@ -1327,16 +1978,40 @@ class MainActivity : Activity() {
         val iconView =
             TextView(this)
 
-        iconView.text = icon
-        iconView.textSize = 23f
+        iconView.text =
+            when (icon) {
+
+                "HOME" ->
+                    "⌂"
+
+                "EVENT" ->
+                    "□"
+
+                else ->
+                    "⚙"
+            }
+
+        iconView.textSize =
+            if (
+                icon == "SETTINGS"
+            ) {
+                23f
+            } else {
+                25f
+            }
+
         iconView.gravity =
             Gravity.CENTER
 
         val labelView =
             TextView(this)
 
-        labelView.text = label
-        labelView.textSize = 13f
+        labelView.text =
+            label
+
+        labelView.textSize =
+            13f
+
         labelView.gravity =
             Gravity.CENTER
 
@@ -1370,6 +2045,10 @@ class MainActivity : Activity() {
         return item
     }
 
+    // ============================================================
+    // SELECT TAB
+    // ============================================================
+
     private fun selectTab(
         selected: Int
     ) {
@@ -1377,14 +2056,17 @@ class MainActivity : Activity() {
         when (selected) {
 
             0 -> {
+
                 showHome()
             }
 
             1 -> {
+
                 showEventsScreen()
             }
 
             2 -> {
+
                 showSettingsScreen()
             }
         }
@@ -1405,6 +2087,10 @@ class MainActivity : Activity() {
         )
     }
 
+    // ============================================================
+    // TAB APPEARANCE
+    // ============================================================
+
     private fun updateTabAppearance(
         tab: LinearLayout,
         selected: Boolean
@@ -1420,18 +2106,27 @@ class MainActivity : Activity() {
             views[1] as TextView
 
         val color =
-            if (selected)
-                accentColor
-            else
-                secondaryTextColor
+            if (selected) {
 
-        icon.setTextColor(color)
-        label.setTextColor(color)
+                accentColor
+
+            } else {
+
+                secondaryTextColor
+            }
+
+        icon.setTextColor(
+            color
+        )
+
+        label.setTextColor(
+            color
+        )
     }
 
-    // ------------------------------------------------------------
+    // ============================================================
     // EVENTS SCREEN
-    // ------------------------------------------------------------
+    // ============================================================
 
     private fun showEventsScreen() {
 
@@ -1449,7 +2144,8 @@ class MainActivity : Activity() {
         title.text =
             "Events"
 
-        title.textSize = 27f
+        title.textSize =
+            27f
 
         title.typeface =
             Typeface.DEFAULT_BOLD
@@ -1478,15 +2174,22 @@ class MainActivity : Activity() {
         list.orientation =
             LinearLayout.VERTICAL
 
-        for (holiday in indiaHolidays2026) {
+        for (
+            holiday
+            in indiaHolidays2026
+        ) {
 
             val row =
                 TextView(this)
 
             row.text =
-                "${holiday.day} ${monthShort(holiday.month)}  •  ${holiday.name}"
+                "${holiday.day} " +
+                        "${monthShort(holiday.month)}" +
+                        "  •  " +
+                        holiday.name
 
-            row.textSize = 15f
+            row.textSize =
+                15f
 
             row.setTextColor(
                 primaryTextColor
@@ -1511,7 +2214,9 @@ class MainActivity : Activity() {
             )
         }
 
-        scroll.addView(list)
+        scroll.addView(
+            list
+        )
 
         screen.addView(
             scroll,
@@ -1531,22 +2236,29 @@ class MainActivity : Activity() {
         )
     }
 
+    // ============================================================
+    // MONTH SHORT NAME
+    // ============================================================
+
     private fun monthShort(
         month: Int
     ): String {
 
-        return java.time.Month.of(month)
+        return java.time.Month
+            .of(month)
             .name
-            .lowercase(Locale.getDefault())
+            .lowercase(
+                Locale.getDefault()
+            )
             .replaceFirstChar {
                 it.uppercase()
             }
             .take(3)
     }
 
-    // ------------------------------------------------------------
-    // SETTINGS
-    // ------------------------------------------------------------
+    // ============================================================
+    // SETTINGS SCREEN
+    // ============================================================
 
     private fun showSettingsScreen() {
 
@@ -1564,7 +2276,8 @@ class MainActivity : Activity() {
         title.text =
             "Settings"
 
-        title.textSize = 27f
+        title.textSize =
+            27f
 
         title.typeface =
             Typeface.DEFAULT_BOLD
@@ -1606,7 +2319,8 @@ class MainActivity : Activity() {
         themeText.text =
             "Theme\n$currentTheme"
 
-        themeText.textSize = 16f
+        themeText.textSize =
+            16f
 
         themeText.setTextColor(
             primaryTextColor
@@ -1624,12 +2338,18 @@ class MainActivity : Activity() {
         val arrow =
             TextView(this)
 
-        arrow.text = "›"
-        arrow.textSize = 26f
+        arrow.text =
+            "›"
+
+        arrow.textSize =
+            26f
 
         arrow.setTextColor(
             secondaryTextColor
         )
+
+        arrow.gravity =
+            Gravity.CENTER
 
         themeRow.addView(
             arrow,
@@ -1640,6 +2360,7 @@ class MainActivity : Activity() {
         )
 
         themeRow.setOnClickListener {
+
             showThemePicker()
         }
 
@@ -1660,9 +2381,9 @@ class MainActivity : Activity() {
         )
     }
 
-    // ------------------------------------------------------------
+    // ============================================================
     // THEME PICKER
-    // ------------------------------------------------------------
+    // ============================================================
 
     private fun showThemePicker() {
 
@@ -1676,10 +2397,14 @@ class MainActivity : Activity() {
             )
 
         AlertDialog.Builder(this)
-            .setTitle("Theme")
+            .setTitle(
+                "Theme"
+            )
             .setSingleChoiceItems(
                 themes,
-                themes.indexOf(currentTheme)
+                themes.indexOf(
+                    currentTheme
+                )
             ) { dialog, which ->
 
                 applyTheme(
@@ -1691,123 +2416,18 @@ class MainActivity : Activity() {
             .show()
     }
 
-    // ------------------------------------------------------------
+    // ============================================================
     // APPLY THEME
-    // ------------------------------------------------------------
+    // ============================================================
 
     private fun applyTheme(
         theme: String
     ) {
 
-        currentTheme = theme
+        currentTheme =
+            theme
 
-        when (theme) {
-
-            "Light" -> {
-
-                backgroundColor =
-                    Color.rgb(250, 250, 250)
-
-                primaryTextColor =
-                    Color.rgb(38, 38, 38)
-
-                secondaryTextColor =
-                    Color.rgb(90, 90, 90)
-
-                accentColor =
-                    Color.rgb(55, 115, 215)
-
-                selectedColor =
-                    Color.rgb(82, 82, 82)
-
-                dividerColor =
-                    Color.rgb(225, 225, 225)
-            }
-
-            "Dark" -> {
-
-                backgroundColor =
-                    Color.rgb(25, 25, 25)
-
-                primaryTextColor =
-                    Color.rgb(240, 240, 240)
-
-                secondaryTextColor =
-                    Color.rgb(175, 175, 175)
-
-                accentColor =
-                    Color.rgb(90, 150, 245)
-
-                selectedColor =
-                    Color.rgb(95, 95, 95)
-
-                dividerColor =
-                    Color.rgb(65, 65, 65)
-            }
-
-            "Blue" -> {
-
-                backgroundColor =
-                    Color.rgb(245, 249, 255)
-
-                primaryTextColor =
-                    Color.rgb(30, 45, 65)
-
-                secondaryTextColor =
-                    Color.rgb(80, 100, 125)
-
-                accentColor =
-                    Color.rgb(45, 115, 220)
-
-                selectedColor =
-                    Color.rgb(65, 100, 150)
-
-                dividerColor =
-                    Color.rgb(215, 225, 240)
-            }
-
-            "Green" -> {
-
-                backgroundColor =
-                    Color.rgb(246, 251, 247)
-
-                primaryTextColor =
-                    Color.rgb(35, 55, 40)
-
-                secondaryTextColor =
-                    Color.rgb(85, 110, 90)
-
-                accentColor =
-                    Color.rgb(45, 150, 85)
-
-                selectedColor =
-                    Color.rgb(65, 105, 75)
-
-                dividerColor =
-                    Color.rgb(215, 230, 218)
-            }
-
-            "Purple" -> {
-
-                backgroundColor =
-                    Color.rgb(249, 246, 252)
-
-                primaryTextColor =
-                    Color.rgb(50, 40, 60)
-
-                secondaryTextColor =
-                    Color.rgb(100, 90, 110)
-
-                accentColor =
-                    Color.rgb(125, 75, 190)
-
-                selectedColor =
-                    Color.rgb(90, 70, 105)
-
-                dividerColor =
-                    Color.rgb(225, 215, 232)
-            }
-        }
+        applyThemeColorsOnly()
 
         saveTheme()
 
@@ -1825,9 +2445,9 @@ class MainActivity : Activity() {
         )
     }
 
-    // ------------------------------------------------------------
-    // PREFERENCES
-    // ------------------------------------------------------------
+    // ============================================================
+    // SAVE THEME
+    // ============================================================
 
     private fun saveTheme() {
 
@@ -1843,6 +2463,10 @@ class MainActivity : Activity() {
             .apply()
     }
 
+    // ============================================================
+    // LOAD THEME
+    // ============================================================
+
     private fun loadTheme() {
 
         currentTheme =
@@ -1853,11 +2477,15 @@ class MainActivity : Activity() {
                 .getString(
                     themeKey,
                     "Light"
-                ) ?: "Light"
+                )
+                ?: "Light"
 
-        // Set initial colors.
         applyThemeColorsOnly()
     }
+
+    // ============================================================
+    // THEME COLORS
+    // ============================================================
 
     private fun applyThemeColorsOnly() {
 
@@ -1866,113 +2494,233 @@ class MainActivity : Activity() {
             "Dark" -> {
 
                 backgroundColor =
-                    Color.rgb(25, 25, 25)
+                    Color.rgb(
+                        25,
+                        25,
+                        25
+                    )
 
                 primaryTextColor =
-                    Color.rgb(240, 240, 240)
+                    Color.rgb(
+                        240,
+                        240,
+                        240
+                    )
 
                 secondaryTextColor =
-                    Color.rgb(175, 175, 175)
+                    Color.rgb(
+                        175,
+                        175,
+                        175
+                    )
 
                 accentColor =
-                    Color.rgb(90, 150, 245)
+                    Color.rgb(
+                        90,
+                        150,
+                        245
+                    )
 
                 selectedColor =
-                    Color.rgb(95, 95, 95)
+                    Color.rgb(
+                        95,
+                        95,
+                        95
+                    )
 
                 dividerColor =
-                    Color.rgb(65, 65, 65)
+                    Color.rgb(
+                        65,
+                        65,
+                        65
+                    )
             }
 
             "Blue" -> {
 
                 backgroundColor =
-                    Color.rgb(245, 249, 255)
+                    Color.rgb(
+                        245,
+                        249,
+                        255
+                    )
 
                 primaryTextColor =
-                    Color.rgb(30, 45, 65)
+                    Color.rgb(
+                        30,
+                        45,
+                        65
+                    )
 
                 secondaryTextColor =
-                    Color.rgb(80, 100, 125)
+                    Color.rgb(
+                        80,
+                        100,
+                        125
+                    )
 
                 accentColor =
-                    Color.rgb(45, 115, 220)
+                    Color.rgb(
+                        45,
+                        115,
+                        220
+                    )
 
                 selectedColor =
-                    Color.rgb(65, 100, 150)
+                    Color.rgb(
+                        65,
+                        100,
+                        150
+                    )
 
                 dividerColor =
-                    Color.rgb(215, 225, 240)
+                    Color.rgb(
+                        215,
+                        225,
+                        240
+                    )
             }
 
             "Green" -> {
 
                 backgroundColor =
-                    Color.rgb(246, 251, 247)
+                    Color.rgb(
+                        246,
+                        251,
+                        247
+                    )
 
                 primaryTextColor =
-                    Color.rgb(35, 55, 40)
+                    Color.rgb(
+                        35,
+                        55,
+                        40
+                    )
 
                 secondaryTextColor =
-                    Color.rgb(85, 110, 90)
+                    Color.rgb(
+                        85,
+                        110,
+                        90
+                    )
 
                 accentColor =
-                    Color.rgb(45, 150, 85)
+                    Color.rgb(
+                        45,
+                        150,
+                        85
+                    )
 
                 selectedColor =
-                    Color.rgb(65, 105, 75)
+                    Color.rgb(
+                        65,
+                        105,
+                        75
+                    )
 
                 dividerColor =
-                    Color.rgb(215, 230, 218)
+                    Color.rgb(
+                        215,
+                        230,
+                        218
+                    )
             }
 
             "Purple" -> {
 
                 backgroundColor =
-                    Color.rgb(249, 246, 252)
+                    Color.rgb(
+                        249,
+                        246,
+                        252
+                    )
 
                 primaryTextColor =
-                    Color.rgb(50, 40, 60)
+                    Color.rgb(
+                        50,
+                        40,
+                        60
+                    )
 
                 secondaryTextColor =
-                    Color.rgb(100, 90, 110)
+                    Color.rgb(
+                        100,
+                        90,
+                        110
+                    )
 
                 accentColor =
-                    Color.rgb(125, 75, 190)
+                    Color.rgb(
+                        125,
+                        75,
+                        190
+                    )
 
                 selectedColor =
-                    Color.rgb(90, 70, 105)
+                    Color.rgb(
+                        90,
+                        70,
+                        105
+                    )
 
                 dividerColor =
-                    Color.rgb(225, 215, 232)
+                    Color.rgb(
+                        225,
+                        215,
+                        232
+                    )
             }
 
             else -> {
 
                 backgroundColor =
-                    Color.rgb(250, 250, 250)
+                    Color.rgb(
+                        250,
+                        250,
+                        250
+                    )
 
                 primaryTextColor =
-                    Color.rgb(38, 38, 38)
+                    Color.rgb(
+                        40,
+                        40,
+                        40
+                    )
 
                 secondaryTextColor =
-                    Color.rgb(90, 90, 90)
+                    Color.rgb(
+                        90,
+                        90,
+                        90
+                    )
 
                 accentColor =
-                    Color.rgb(55, 115, 215)
+                    Color.rgb(
+                        55,
+                        115,
+                        215
+                    )
 
                 selectedColor =
-                    Color.rgb(82, 82, 82)
+                    Color.rgb(
+                        82,
+                        82,
+                        82
+                    )
 
                 dividerColor =
-                    Color.rgb(225, 225, 225)
+                    Color.rgb(
+                        225,
+                        225,
+                        225
+                    )
             }
         }
     }
 
-    // ------------------------------------------------------------
+    // ============================================================
     // DP
-    // ------------------------------------------------------------
+    // ============================================================
 
     private fun dp(
         value: Int
@@ -1980,7 +2728,9 @@ class MainActivity : Activity() {
 
         return (
                 value *
-                        resources.displayMetrics.density
+                        resources
+                            .displayMetrics
+                            .density
                 ).toInt()
     }
 }

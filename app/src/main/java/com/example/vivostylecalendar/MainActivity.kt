@@ -902,6 +902,8 @@ private val holidayPrefsName = "calendar_holiday_cache"
         if (!::calendarGrid.isInitialized) {
             return
         }
+        
+ensureHolidayYearLoaded(displayedMonth.year)
 
         val monthName =
             displayedMonth.month.name

@@ -1282,21 +1282,23 @@ private val holidayPrefsName = "calendar_holiday_cache"
     // ============================================================
 
     private fun holidayFor(
-        date: LocalDate
-    ): List<Holiday> {
+    date: LocalDate
+): List<Holiday> {
 
-        if (date.year != 2026) {
-            return emptyList()
+    val year = date.year
+
+    val holidays = holidayCache[year]
+        ?: if (year == 2026) {
+            indiaHolidays2026
+        } else {
+            emptyList()
         }
 
-        return indiaHolidays2026.filter {
-
-            it.month ==
-                    date.monthValue &&
-                    it.day ==
-                    date.dayOfMonth
-        }
+    return holidays.filter {
+        it.month == date.monthValue &&
+        it.day == date.dayOfMonth
     }
+}
 
     // ============================================================
     // INFORMATION

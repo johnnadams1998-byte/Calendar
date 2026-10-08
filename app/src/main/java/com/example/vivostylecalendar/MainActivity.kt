@@ -981,7 +981,7 @@ class MainActivity : Activity() {
                 row,
                 LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    dp(58)
+                    dp(68)
                 )
             )
 

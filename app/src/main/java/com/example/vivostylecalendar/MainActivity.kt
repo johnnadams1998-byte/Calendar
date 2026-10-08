@@ -1299,7 +1299,295 @@ private val holidayPrefsName = "calendar_holiday_cache"
         it.day == date.dayOfMonth
     }
 }
+private fun ensureHolidayYearLoaded(year: Int) {
 
+    if (holidayCache.containsKey(year) ||
+        holidayLoadsInProgress.contains(year)
+    ) {
+        return
+    }
+
+    // Try saved holidays first.
+    val saved = loadHolidayCache(year)
+
+    if (saved != null) {
+
+        holidayCache[year] = if (year == 2026) {
+            mergeHolidays(indiaHolidays2026, saved)
+        } else {
+            saved
+        }
+
+        refreshCalendar()
+        updateInformation()
+
+        return
+    }
+
+    // Keep the built-in 2026 holidays available.
+    if (year == 2026) {
+        holidayCache[year] = indiaHolidays2026
+    }
+
+    holidayLoadsInProgress.add(year)
+
+    Thread {
+
+        try {
+
+            val downloaded = downloadHolidays(year)
+
+            if (downloaded != null) {
+
+                saveHolidayCache(year, downloaded)
+
+                holidayCache[year] =
+                    if (year == 2026) {
+                        mergeHolidays(
+                            indiaHolidays2026,
+                            downloaded
+                        )
+                    } else {
+                        downloaded
+                    }
+            }
+
+        } catch (_: Exception) {
+
+            // Internet unavailable.
+            // Existing/cached holidays will remain available.
+
+        } finally {
+
+            holidayLoadsInProgress.remove(year)
+
+            runOnUiThread {
+
+                if (displayedMonth.year == year) {
+                    refreshCalendar()
+                    updateInformation()
+                }
+            }
+        }
+
+    }.start()
+}
+
+
+private fun downloadHolidays(
+    year: Int
+): List<Holiday>? {
+
+    val url = URL(
+        "https://date.nager.at/api/v3/publicholidays/$year/IN"
+    )
+
+    val connection =
+        (url.openConnection() as HttpURLConnection).apply {
+
+            requestMethod = "GET"
+            connectTimeout = 10000
+            readTimeout = 10000
+            useCaches = true
+        }
+
+    return try {
+
+        if (connection.responseCode !in 200..299) {
+            return null
+        }
+
+        val builder = StringBuilder()
+
+        BufferedReader(
+            InputStreamReader(
+                connection.inputStream,
+                Charsets.UTF_8
+            )
+        ).use { reader ->
+
+            var line: String?
+
+            while (
+                reader.readLine().also { line = it } != null
+            ) {
+                builder.append(line)
+            }
+        }
+
+        val json = JSONArray(builder.toString())
+
+        val result = mutableListOf<Holiday>()
+
+        for (i in 0 until json.length()) {
+
+            val item = json.getJSONObject(i)
+
+            val date =
+                LocalDate.parse(
+                    item.getString("date")
+                )
+
+            val localName =
+                item.optString("localName")
+
+            val commonName =
+                item.optString("name")
+
+            val name =
+                localName.ifBlank {
+                    commonName.ifBlank {
+                        "Holiday"
+                    }
+                }
+
+            val detail =
+                if (
+                    commonName.isNotBlank() &&
+                    localName.isNotBlank() &&
+                    !localName.equals(
+                        commonName,
+                        ignoreCase = true
+                    )
+                ) {
+                    commonName
+                } else {
+                    "Public holiday"
+                }
+
+            result.add(
+                Holiday(
+                    date.monthValue,
+                    date.dayOfMonth,
+                    name,
+                    detail
+                )
+            )
+        }
+
+        result
+
+    } finally {
+
+        connection.disconnect()
+    }
+}
+
+
+private fun mergeHolidays(
+    bundled: List<Holiday>,
+    online: List<Holiday>
+): List<Holiday> {
+
+    val merged = mutableListOf<Holiday>()
+
+    merged.addAll(bundled)
+
+    for (item in online) {
+
+        val duplicate =
+            merged.any {
+
+                it.month == item.month &&
+                it.day == item.day &&
+                it.name.equals(
+                    item.name,
+                    ignoreCase = true
+                )
+            }
+
+        if (!duplicate) {
+            merged.add(item)
+        }
+    }
+
+    return merged.sortedWith(
+        compareBy<Holiday> { it.month }
+            .thenBy { it.day }
+            .thenBy { it.name }
+    )
+}
+
+
+private fun saveHolidayCache(
+    year: Int,
+    holidays: List<Holiday>
+) {
+
+    val array = JSONArray()
+
+    holidays.forEach { holiday ->
+
+        array.put(
+            JSONObject().apply {
+
+                put("month", holiday.month)
+                put("day", holiday.day)
+                put("name", holiday.name)
+                put("detail", holiday.detail)
+            }
+        )
+    }
+
+    getSharedPreferences(
+        holidayPrefsName,
+        MODE_PRIVATE
+    )
+        .edit()
+        .putString(
+            "year_$year",
+            array.toString()
+        )
+        .apply()
+}
+
+
+private fun loadHolidayCache(
+    year: Int
+): List<Holiday>? {
+
+    val raw =
+        getSharedPreferences(
+            holidayPrefsName,
+            MODE_PRIVATE
+        )
+            .getString(
+                "year_$year",
+                null
+            )
+            ?: return null
+
+    return try {
+
+        val array = JSONArray(raw)
+
+        val result = mutableListOf<Holiday>()
+
+        for (i in 0 until array.length()) {
+
+            val item =
+                array.getJSONObject(i)
+
+            result.add(
+                Holiday(
+                    item.getInt("month"),
+                    item.getInt("day"),
+                    item.getString("name"),
+                    item.optString(
+                        "detail",
+                        "Holiday"
+                    )
+                )
+            )
+        }
+
+        result
+
+    } catch (_: Exception) {
+
+        null
+    }
+}
     // ============================================================
     // INFORMATION
     // ============================================================

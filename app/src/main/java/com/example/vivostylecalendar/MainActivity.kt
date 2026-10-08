@@ -889,7 +889,48 @@ private val holidayPrefsName = "calendar_holiday_cache"
                 FrameLayout.LayoutParams.MATCH_PARENT
             )
         )
+var blankSwipeStartX = 0f
 
+contentArea.setOnTouchListener { _, event ->
+
+    when (event.action) {
+
+        MotionEvent.ACTION_DOWN -> {
+            blankSwipeStartX = event.x
+            true
+        }
+
+        MotionEvent.ACTION_UP -> {
+
+            val distance = event.x - blankSwipeStartX
+
+            if (abs(distance) >= dp(60)) {
+
+                if (distance < 0) {
+                    displayedMonth =
+                        displayedMonth.plusMonths(1)
+                } else {
+                    displayedMonth =
+                        displayedMonth.minusMonths(1)
+                }
+
+                selectedDate =
+                    displayedMonth.atDay(1)
+
+                refreshCalendar()
+                updateInformation()
+                updateEvents()
+
+                true
+
+            } else {
+                false
+            }
+        }
+
+        else -> true
+    }
+}
         refreshCalendar()
     }
 

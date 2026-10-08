@@ -2,14 +2,13 @@ package com.example.vivostylecalendar
 
 import android.app.Activity
 import android.app.AlertDialog
-import android.os.Bundle
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.os.Bundle
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
-import android.view.WindowInsets
 import android.widget.*
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -26,17 +25,15 @@ class MainActivity : Activity() {
     // ------------------------------------------------------------
 
     private val today = LocalDate.now()
-
     private var selectedDate = today
     private var displayedMonth = YearMonth.from(today)
 
     // ------------------------------------------------------------
-    // VIEWS
+    // UI
     // ------------------------------------------------------------
 
     private lateinit var root: LinearLayout
     private lateinit var contentArea: FrameLayout
-
     private lateinit var monthTitle: TextView
     private lateinit var calendarGrid: LinearLayout
     private lateinit var infoText: TextView
@@ -46,20 +43,19 @@ class MainActivity : Activity() {
     private lateinit var eventTab: LinearLayout
     private lateinit var settingsTab: LinearLayout
 
+    private var downX = 0f
+
     // ------------------------------------------------------------
     // COLORS
     // ------------------------------------------------------------
 
     private var backgroundColor = Color.rgb(250, 250, 250)
-    private var primaryTextColor = Color.rgb(45, 45, 45)
-    private var secondaryTextColor = Color.rgb(105, 105, 105)
-    private var accentColor = Color.rgb(65, 125, 220)
-    private var selectedColor = Color.rgb(88, 88, 88)
-    private var dividerColor = Color.rgb(225, 225, 225)
+    private var primaryTextColor = Color.rgb(38, 38, 38)
+    private var secondaryTextColor = Color.rgb(90, 90, 90)
 
-    // ------------------------------------------------------------
-    // THEME
-    // ------------------------------------------------------------
+    private var accentColor = Color.rgb(55, 115, 215)
+    private var selectedColor = Color.rgb(82, 82, 82)
+    private var dividerColor = Color.rgb(225, 225, 225)
 
     private var currentTheme = "Light"
 
@@ -67,24 +63,95 @@ class MainActivity : Activity() {
     private val themeKey = "theme"
 
     // ------------------------------------------------------------
-    // SWIPE
+    // HOLIDAY MODEL
     // ------------------------------------------------------------
 
-    private var downX = 0f
+    data class Holiday(
+        val month: Int,
+        val day: Int,
+        val name: String,
+        val detail: String
+    )
+
+    // 2026 India holidays / festivals.
+    private val indiaHolidays2026 = listOf(
+
+        Holiday(1, 1, "New Year's Day", "Indian observance"),
+        Holiday(1, 13, "Lohri", "Indian festival"),
+        Holiday(1, 14, "Makar Sankranti", "Indian festival"),
+        Holiday(1, 14, "Pongal", "Indian festival"),
+        Holiday(1, 23, "Vasant Panchami", "Indian festival"),
+        Holiday(1, 26, "Republic Day", "National holiday"),
+
+        Holiday(2, 1, "Guru Ravidas Jayanti", "Indian observance"),
+        Holiday(2, 15, "Maha Shivaratri", "Indian festival"),
+        Holiday(2, 19, "Shivaji Jayanti", "Indian observance"),
+        Holiday(2, 19, "Ramadan Start", "Indian observance"),
+
+        Holiday(3, 3, "Holika Dahana", "Indian festival"),
+        Holiday(3, 4, "Holi", "Indian festival"),
+        Holiday(3, 19, "Ugadi", "Indian festival"),
+        Holiday(3, 19, "Gudi Padwa", "Indian festival"),
+        Holiday(3, 21, "Ramzan Id", "Indian festival"),
+        Holiday(3, 26, "Rama Navami", "Indian festival"),
+        Holiday(3, 31, "Mahavir Jayanti", "Indian festival"),
+
+        Holiday(4, 3, "Good Friday", "Gazetted holiday"),
+        Holiday(4, 14, "Vaisakhi", "Indian festival"),
+        Holiday(4, 14, "Vishu", "Indian festival"),
+        Holiday(4, 14, "Tamil New Year", "Indian festival"),
+        Holiday(4, 14, "Ambedkar Jayanti", "Indian observance"),
+
+        Holiday(5, 1, "Buddha Purnima", "Indian festival"),
+        Holiday(5, 1, "International Workers' Day", "Observance"),
+        Holiday(5, 28, "Bakrid", "Indian festival"),
+
+        Holiday(6, 26, "Muharram / Ashura", "Indian observance"),
+
+        Holiday(7, 16, "Rath Yatra", "Indian festival"),
+        Holiday(7, 29, "Guru Purnima", "Indian festival"),
+
+        Holiday(8, 15, "Independence Day", "National holiday"),
+        Holiday(8, 15, "Parsi New Year", "Indian observance"),
+        Holiday(8, 26, "Onam", "Indian festival"),
+        Holiday(8, 26, "Milad un-Nabi", "Indian observance"),
+        Holiday(8, 28, "Raksha Bandhan", "Indian festival"),
+
+        Holiday(9, 4, "Janmashtami", "Indian festival"),
+        Holiday(9, 14, "Ganesh Chaturthi", "Indian festival"),
+
+        Holiday(10, 2, "Mahatma Gandhi Jayanti", "National holiday"),
+        Holiday(10, 11, "Sharad Navratri Begins", "Indian festival"),
+        Holiday(10, 17, "Durga Puja Begins", "Indian festival"),
+        Holiday(10, 18, "Maha Saptami", "Indian festival"),
+        Holiday(10, 19, "Maha Ashtami", "Indian festival"),
+        Holiday(10, 20, "Dussehra", "National holiday"),
+        Holiday(10, 26, "Maharishi Valmiki Jayanti", "Indian observance"),
+        Holiday(10, 29, "Karaka Chaturthi", "Indian festival"),
+
+        Holiday(11, 8, "Naraka Chaturdasi", "Indian festival"),
+        Holiday(11, 8, "Diwali / Deepavali", "Indian festival"),
+        Holiday(11, 9, "Govardhan Puja", "Indian festival"),
+        Holiday(11, 11, "Bhai Duj", "Indian festival"),
+        Holiday(11, 15, "Chhath Puja", "Indian festival"),
+        Holiday(11, 24, "Guru Nanak Jayanti", "Indian festival"),
+        Holiday(11, 24, "Guru Tegh Bahadur Martyrdom Day", "Indian observance"),
+
+        Holiday(12, 23, "Hazarat Ali's Birthday", "Indian observance"),
+        Holiday(12, 24, "Christmas Eve", "Indian observance"),
+        Holiday(12, 25, "Christmas", "National holiday")
+    )
 
     // ------------------------------------------------------------
-    // ON CREATE
+    // ACTIVITY
     // ------------------------------------------------------------
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         loadTheme()
-
         configureSystemBars()
-
         buildApplication()
-
         showHome()
     }
 
@@ -97,30 +164,12 @@ class MainActivity : Activity() {
         window.statusBarColor = backgroundColor
         window.navigationBarColor = backgroundColor
 
-        window.decorView.systemUiVisibility =
-            View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or
-            View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
-
-        /*
-         * Make the app respect the phone's system navigation area.
-         * This prevents Home / Event / Settings from being hidden
-         * behind the Moto's navigation buttons.
-         */
-        window.decorView.setOnApplyWindowInsetsListener { view, insets ->
-
-            val navigationBottom =
-                insets.getInsets(
-                    WindowInsets.Type.navigationBars()
-                ).bottom
-
-            view.setPadding(
-                view.paddingLeft,
-                view.paddingTop,
-                view.paddingRight,
-                navigationBottom
-            )
-
-            insets
+        if (currentTheme == "Dark") {
+            window.decorView.systemUiVisibility = 0
+        } else {
+            window.decorView.systemUiVisibility =
+                View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or
+                        View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
         }
     }
 
@@ -131,13 +180,12 @@ class MainActivity : Activity() {
     private fun buildApplication() {
 
         root = LinearLayout(this)
-
         root.orientation = LinearLayout.VERTICAL
         root.setBackgroundColor(backgroundColor)
 
         root.setPadding(
             dp(18),
-            dp(12),
+            dp(10),
             dp(18),
             0
         )
@@ -159,7 +207,7 @@ class MainActivity : Activity() {
     }
 
     // ------------------------------------------------------------
-    // HOME SCREEN
+    // HOME
     // ------------------------------------------------------------
 
     private fun showHome() {
@@ -167,7 +215,6 @@ class MainActivity : Activity() {
         contentArea.removeAllViews()
 
         val screen = LinearLayout(this)
-
         screen.orientation = LinearLayout.VERTICAL
         screen.setBackgroundColor(backgroundColor)
 
@@ -176,27 +223,16 @@ class MainActivity : Activity() {
         // --------------------------------------------------------
 
         val header = LinearLayout(this)
-
         header.orientation = LinearLayout.HORIZONTAL
         header.gravity = Gravity.CENTER_VERTICAL
 
         monthTitle = TextView(this)
-
         monthTitle.textSize = 27f
         monthTitle.setTextColor(primaryTextColor)
-
         monthTitle.typeface =
-            Typeface.create(
-                "sans-serif",
-                Typeface.BOLD
-            )
+            Typeface.create("sans-serif", Typeface.BOLD)
+        monthTitle.gravity = Gravity.CENTER_VERTICAL
 
-        monthTitle.gravity =
-            Gravity.CENTER_VERTICAL
-
-        /*
-         * Tap month title to open month/year picker.
-         */
         monthTitle.setOnClickListener {
             showMonthYearPicker()
         }
@@ -205,63 +241,60 @@ class MainActivity : Activity() {
             monthTitle,
             LinearLayout.LayoutParams(
                 0,
-                dp(58),
+                dp(62),
                 1f
             )
         )
 
-        // Today button
+        // --------------------------------------------------------
+        // TODAY BOX
+        // --------------------------------------------------------
 
-        val todayButton =
-            headerButton("▣", 21f)
+        val todayButton = createTodayButton()
 
         todayButton.setOnClickListener {
 
-            displayedMonth =
-                YearMonth.from(today)
-
+            displayedMonth = YearMonth.from(today)
             selectedDate = today
 
             refreshCalendar()
         }
 
-        // Add button
+        header.addView(todayButton)
 
-        val addButton =
-            headerButton("+", 28f)
+        // --------------------------------------------------------
+        // PLUS
+        // --------------------------------------------------------
+
+        val addButton = headerButton("+", 28f)
 
         addButton.setOnClickListener {
-
             showAddEventDialog()
         }
 
-        // Menu button
+        header.addView(addButton)
 
-        val menuButton =
-            headerButton("⋮", 23f)
+        // --------------------------------------------------------
+        // MENU
+        // --------------------------------------------------------
+
+        val menuButton = headerButton("⋮", 23f)
 
         menuButton.setOnClickListener {
-
             showCalendarMenu()
         }
 
-        header.addView(todayButton)
-        header.addView(addButton)
         header.addView(menuButton)
 
         screen.addView(header)
 
         // --------------------------------------------------------
-        // WEEKDAY ROW
+        // WEEKDAYS
         // --------------------------------------------------------
 
         val weekdayRow = LinearLayout(this)
-
-        weekdayRow.orientation =
-            LinearLayout.HORIZONTAL
-
-        weekdayRow.gravity =
-            Gravity.CENTER
+        weekdayRow.orientation = LinearLayout.HORIZONTAL
+        weekdayRow.gravity = Gravity.CENTER
 
         val weekdays = arrayOf(
             "Sun",
@@ -279,18 +312,14 @@ class MainActivity : Activity() {
 
             day.text = name
             day.textSize = 13f
-            day.setTextColor(
-                secondaryTextColor
-            )
-
-            day.gravity =
-                Gravity.CENTER
+            day.setTextColor(secondaryTextColor)
+            day.gravity = Gravity.CENTER
 
             weekdayRow.addView(
                 day,
                 LinearLayout.LayoutParams(
                     0,
-                    dp(38),
+                    dp(40),
                     1f
                 )
             )
@@ -299,39 +328,36 @@ class MainActivity : Activity() {
         screen.addView(weekdayRow)
 
         // --------------------------------------------------------
-        // CALENDAR
+        // CALENDAR GRID
         // --------------------------------------------------------
 
         calendarGrid = LinearLayout(this)
+        calendarGrid.orientation = LinearLayout.VERTICAL
 
-        calendarGrid.orientation =
-            LinearLayout.VERTICAL
+        // IMPORTANT:
+        // Centers the whole calendar vertically instead of
+        // leaving all dates at the top.
+        calendarGrid.gravity = Gravity.CENTER_VERTICAL
 
         calendarGrid.setOnTouchListener { _, event ->
 
             when (event.action) {
 
                 MotionEvent.ACTION_DOWN -> {
-
                     downX = event.x
-
                     true
                 }
 
                 MotionEvent.ACTION_UP -> {
 
-                    val difference =
-                        event.x - downX
+                    val difference = event.x - downX
 
                     if (abs(difference) > dp(70)) {
 
                         displayedMonth =
                             if (difference < 0) {
-
                                 displayedMonth.plusMonths(1)
-
                             } else {
-
                                 displayedMonth.minusMonths(1)
                             }
 
@@ -355,25 +381,20 @@ class MainActivity : Activity() {
         )
 
         // --------------------------------------------------------
-        // DATE INFORMATION
+        // INFORMATION
         // --------------------------------------------------------
 
         infoText = TextView(this)
 
-        infoText.textSize = 14f
-
-        infoText.setTextColor(
-            secondaryTextColor
-        )
-
-        infoText.gravity =
-            Gravity.CENTER_VERTICAL
+        infoText.textSize = 15f
+        infoText.setTextColor(secondaryTextColor)
+        infoText.gravity = Gravity.CENTER_VERTICAL
 
         screen.addView(
             infoText,
             LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(42)
+                dp(45)
             )
         )
 
@@ -382,15 +403,13 @@ class MainActivity : Activity() {
         // --------------------------------------------------------
 
         eventsArea = LinearLayout(this)
-
-        eventsArea.orientation =
-            LinearLayout.VERTICAL
+        eventsArea.orientation = LinearLayout.VERTICAL
 
         screen.addView(
             eventsArea,
             LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(100)
+                dp(120)
             )
         )
 
@@ -411,9 +430,7 @@ class MainActivity : Activity() {
 
     private fun refreshCalendar() {
 
-        if (!::calendarGrid.isInitialized) {
-            return
-        }
+        if (!::calendarGrid.isInitialized) return
 
         val monthName =
             displayedMonth.month.name
@@ -428,8 +445,7 @@ class MainActivity : Activity() {
 
         calendarGrid.removeAllViews()
 
-        val firstDay =
-            displayedMonth.atDay(1)
+        val firstDay = displayedMonth.atDay(1)
 
         val firstColumn =
             when (firstDay.dayOfWeek) {
@@ -443,35 +459,21 @@ class MainActivity : Activity() {
                 DayOfWeek.SATURDAY -> 6
             }
 
-        val days =
-            displayedMonth.lengthOfMonth()
+        val days = displayedMonth.lengthOfMonth()
 
         val rows =
-            if (firstColumn + days <= 35) {
-                5
-            } else {
-                6
-            }
+            if (firstColumn + days <= 35) 5 else 6
 
-        /*
-         * Fixed but comfortable row height.
-         * This prevents dates disappearing because of weight
-         * measurement problems.
-         */
+        // Larger, more spacious calendar.
         val rowHeight =
-            if (rows == 5) dp(62)
-            else dp(52)
+            if (rows == 5) dp(67) else dp(58)
 
         for (rowIndex in 0 until rows) {
 
-            val row =
-                LinearLayout(this)
+            val row = LinearLayout(this)
 
-            row.orientation =
-                LinearLayout.HORIZONTAL
-
-            row.gravity =
-                Gravity.CENTER_VERTICAL
+            row.orientation = LinearLayout.HORIZONTAL
+            row.gravity = Gravity.CENTER_VERTICAL
 
             calendarGrid.addView(
                 row,
@@ -483,8 +485,7 @@ class MainActivity : Activity() {
 
             for (column in 0 until 7) {
 
-                val cell =
-                    FrameLayout(this)
+                val cell = FrameLayout(this)
 
                 row.addView(
                     cell,
@@ -504,32 +505,32 @@ class MainActivity : Activity() {
                 ) {
 
                     val number =
-                        position -
-                        firstColumn +
-                        1
+                        position - firstColumn + 1
 
                     val date =
                         displayedMonth.atDay(number)
 
-                    val dateText =
-                        TextView(this)
+                    // ------------------------------------------------
+                    // DATE NUMBER
+                    // ------------------------------------------------
+
+                    val dateText = TextView(this)
 
                     dateText.text =
                         number.toString()
 
-                    dateText.textSize =
-                        16f
+                    dateText.textSize = 16f
 
                     dateText.gravity =
                         Gravity.CENTER
 
-                    dateText.includeFontPadding =
-                        true
+                    dateText.includeFontPadding = true
 
-                    // ------------------------------------------------
-                    // SELECTED DATE
-                    // ------------------------------------------------
+                    dateText.setTextColor(
+                        primaryTextColor
+                    )
 
+                    // Selected date
                     if (date == selectedDate) {
 
                         val circle =
@@ -549,10 +550,6 @@ class MainActivity : Activity() {
                             Color.WHITE
                         )
 
-                    // ------------------------------------------------
-                    // TODAY
-                    // ------------------------------------------------
-
                     } else if (date == today) {
 
                         dateText.setTextColor(
@@ -564,12 +561,6 @@ class MainActivity : Activity() {
                                 "sans-serif",
                                 Typeface.BOLD
                             )
-
-                    } else {
-
-                        dateText.setTextColor(
-                            primaryTextColor
-                        )
                     }
 
                     val dateParams =
@@ -586,10 +577,53 @@ class MainActivity : Activity() {
                         dateParams
                     )
 
+                    // ------------------------------------------------
+                    // HOLIDAY DOT
+                    // ------------------------------------------------
+
+                    if (holidayFor(date).isNotEmpty()) {
+
+                        val dot = View(this)
+
+                        val dotDrawable =
+                            GradientDrawable()
+
+                        dotDrawable.shape =
+                            GradientDrawable.OVAL
+
+                        dotDrawable.setColor(
+                            holidayColor(date)
+                        )
+
+                        dot.background =
+                            dotDrawable
+
+                        val dotParams =
+                            FrameLayout.LayoutParams(
+                                dp(6),
+                                dp(6)
+                            )
+
+                        dotParams.gravity =
+                            Gravity.CENTER_HORIZONTAL or
+                                    Gravity.BOTTOM
+
+                        dotParams.bottomMargin =
+                            dp(5)
+
+                        cell.addView(
+                            dot,
+                            dotParams
+                        )
+                    }
+
+                    // ------------------------------------------------
+                    // CLICK
+                    // ------------------------------------------------
+
                     cell.setOnClickListener {
 
-                        selectedDate =
-                            date
+                        selectedDate = date
 
                         refreshCalendar()
                     }
@@ -602,7 +636,44 @@ class MainActivity : Activity() {
     }
 
     // ------------------------------------------------------------
-    // DATE INFORMATION
+    // HOLIDAY LOOKUP
+    // ------------------------------------------------------------
+
+    private fun holidayFor(
+        date: LocalDate
+    ): List<Holiday> {
+
+        if (date.year != 2026) {
+            return emptyList()
+        }
+
+        return indiaHolidays2026.filter {
+
+            it.month == date.monthValue &&
+                    it.day == date.dayOfMonth
+        }
+    }
+
+    private fun holidayColor(
+        date: LocalDate
+    ): Int {
+
+        val list = holidayFor(date)
+
+        if (list.isEmpty()) {
+            return accentColor
+        }
+
+        return when (list.first().month) {
+
+            10 -> Color.rgb(225, 55, 65)
+            11 -> Color.rgb(245, 145, 25)
+            else -> Color.rgb(50, 165, 105)
+        }
+    }
+
+    // ------------------------------------------------------------
+    // INFORMATION
     // ------------------------------------------------------------
 
     private fun updateInformation() {
@@ -628,12 +699,22 @@ class MainActivity : Activity() {
 
         val week =
             selectedDate.get(
-                WeekFields.ISO
-                    .weekOfWeekBasedYear()
+                WeekFields.ISO.weekOfWeekBasedYear()
             )
 
+        val left =
+            TextView(this)
+
         infoText.text =
-            "$description                              Week $week"
+            "$description                                      Week $week"
+
+        // Slightly darker than before.
+        infoText.setTextColor(
+            if (currentTheme == "Dark")
+                Color.rgb(180, 180, 180)
+            else
+                Color.rgb(75, 75, 75)
+        )
     }
 
     // ------------------------------------------------------------
@@ -644,35 +725,16 @@ class MainActivity : Activity() {
 
         eventsArea.removeAllViews()
 
-        /*
-         * The reference screenshot shows this event.
-         * It is kept as a visual example for Dec 23, 2026.
-         */
+        val holidays =
+            holidayFor(selectedDate)
 
-        if (
-            selectedDate.year == 2026 &&
-            selectedDate.monthValue == 12 &&
-            selectedDate.dayOfMonth == 23
-        ) {
-
-            addEvent(
-                "Hazarat Ali's Birthday"
-            )
-
-            addEvent(
-                "Hazarat Ali's Birthday"
-            )
-
-        } else {
+        if (holidays.isEmpty()) {
 
             val empty =
                 TextView(this)
 
-            empty.text =
-                "No events"
-
-            empty.textSize =
-                14f
+            empty.text = "No events"
+            empty.textSize = 14f
 
             empty.setTextColor(
                 secondaryTextColor
@@ -695,92 +757,474 @@ class MainActivity : Activity() {
                     dp(48)
                 )
             )
+
+            return
+        }
+
+        for (holiday in holidays) {
+
+            addHolidayEvent(
+                holiday
+            )
         }
     }
 
-    private fun addEvent(title: String) {
+    private fun addHolidayEvent(
+        holiday: Holiday
+    ) {
 
-        val row =
+        val container =
             LinearLayout(this)
 
-        row.orientation =
+        container.orientation =
             LinearLayout.HORIZONTAL
 
-        row.gravity =
+        container.gravity =
             Gravity.CENTER_VERTICAL
 
-        val time =
+        container.setPadding(
+            dp(5),
+            dp(3),
+            0,
+            dp(3)
+        )
+
+        // --------------------------------------------------------
+        // ALL DAY
+        // --------------------------------------------------------
+
+        val allDay =
             TextView(this)
 
-        time.text =
-            "All day"
-
-        time.textSize =
-            12f
-
-        time.setTextColor(
+        allDay.text = "All day"
+        allDay.textSize = 14f
+        allDay.setTextColor(
             secondaryTextColor
         )
 
-        time.gravity =
-            Gravity.CENTER
+        allDay.gravity =
+            Gravity.CENTER_VERTICAL
 
-        row.addView(
-            time,
+        container.addView(
+            allDay,
             LinearLayout.LayoutParams(
-                dp(58),
-                dp(46)
+                dp(67),
+                LinearLayout.LayoutParams.MATCH_PARENT
             )
         )
+
+        // --------------------------------------------------------
+        // COLORED LINE
+        // --------------------------------------------------------
 
         val line =
             View(this)
 
-        line.setBackgroundColor(
-            Color.rgb(70, 170, 110)
-        )
+        val lineDrawable =
+            GradientDrawable()
 
-        row.addView(
-            line,
-            LinearLayout.LayoutParams(
-                dp(3),
-                dp(34)
+        lineDrawable.cornerRadius =
+            dp(4).toFloat()
+
+        lineDrawable.setColor(
+            holidayColor(
+                selectedDate
             )
         )
 
-        val titleText =
-            TextView(this)
+        line.background =
+            lineDrawable
 
-        titleText.text =
-            title
-
-        titleText.textSize =
-            15f
-
-        titleText.setTextColor(
-            primaryTextColor
+        container.addView(
+            line,
+            LinearLayout.LayoutParams(
+                dp(5),
+                dp(40)
+            )
         )
 
-        titleText.gravity =
+        // --------------------------------------------------------
+        // TEXT
+        // --------------------------------------------------------
+
+        val textBox =
+            LinearLayout(this)
+
+        textBox.orientation =
+            LinearLayout.VERTICAL
+
+        textBox.gravity =
             Gravity.CENTER_VERTICAL
 
-        titleText.setPadding(
+        textBox.setPadding(
             dp(12),
             0,
-            0,
+            dp(5),
             0
         )
 
-        row.addView(
-            titleText,
+        val title =
+            TextView(this)
+
+        title.text =
+            holiday.name
+
+        title.textSize = 15f
+
+        title.setTextColor(
+            primaryTextColor
+        )
+
+        title.typeface =
+            Typeface.create(
+                "sans-serif",
+                Typeface.BOLD
+            )
+
+        val detail =
+            TextView(this)
+
+        detail.text =
+            holiday.detail
+
+        detail.textSize = 13f
+
+        detail.setTextColor(
+            secondaryTextColor
+        )
+
+        textBox.addView(title)
+        textBox.addView(detail)
+
+        container.addView(
+            textBox,
             LinearLayout.LayoutParams(
                 0,
-                dp(46),
+                LinearLayout.LayoutParams.MATCH_PARENT,
                 1f
             )
         )
 
-        eventsArea.addView(row)
+        // --------------------------------------------------------
+        // ARROW
+        // --------------------------------------------------------
+
+        val arrow =
+            TextView(this)
+
+        arrow.text = "›"
+        arrow.textSize = 25f
+
+        arrow.setTextColor(
+            secondaryTextColor
+        )
+
+        arrow.gravity =
+            Gravity.CENTER
+
+        container.addView(
+            arrow,
+            LinearLayout.LayoutParams(
+                dp(32),
+                LinearLayout.LayoutParams.MATCH_PARENT
+            )
+        )
+
+        eventsArea.addView(
+            container,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(58)
+            )
+        )
+
+        // Divider
+        val divider =
+            View(this)
+
+        divider.setBackgroundColor(
+            dividerColor
+        )
+
+        eventsArea.addView(
+            divider,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(1)
+            )
+        )
+    }
+
+    // ------------------------------------------------------------
+    // TODAY BUTTON
+    // ------------------------------------------------------------
+
+    private fun createTodayButton(): TextView {
+
+        val button =
+            TextView(this)
+
+        val dayName =
+            today.dayOfWeek.name
+                .lowercase(Locale.getDefault())
+                .replaceFirstChar {
+                    it.uppercase()
+                }
+                .take(3)
+
+        button.text =
+            "$dayName\n${today.dayOfMonth}"
+
+        button.textSize = 10f
+
+        button.setTextColor(
+            primaryTextColor
+        )
+
+        button.gravity =
+            Gravity.CENTER
+
+        button.setLineSpacing(
+            0f,
+            0.85f
+        )
+
+        button.typeface =
+            Typeface.create(
+                "sans-serif",
+                Typeface.BOLD
+            )
+
+        val background =
+            GradientDrawable()
+
+        background.cornerRadius =
+            dp(8).toFloat()
+
+        background.setColor(
+            if (currentTheme == "Dark")
+                Color.rgb(45, 45, 45)
+            else
+                Color.TRANSPARENT
+        )
+
+        background.setStroke(
+            dp(1),
+            if (currentTheme == "Dark")
+                Color.rgb(130, 130, 130)
+            else
+                Color.rgb(60, 60, 60)
+        )
+
+        button.background =
+            background
+
+        val params =
+            LinearLayout.LayoutParams(
+                dp(48),
+                dp(52)
+            )
+
+        params.setMargins(
+            dp(3),
+            0,
+            dp(3),
+            0
+        )
+
+        button.layoutParams =
+            params
+
+        return button
+    }
+
+    // ------------------------------------------------------------
+    // HEADER BUTTON
+    // ------------------------------------------------------------
+
+    private fun headerButton(
+        symbol: String,
+        size: Float
+    ): TextView {
+
+        val button =
+            TextView(this)
+
+        button.text = symbol
+        button.textSize = size
+
+        button.setTextColor(
+            primaryTextColor
+        )
+
+        button.gravity =
+            Gravity.CENTER
+
+        button.setPadding(
+            dp(3),
+            0,
+            dp(3),
+            0
+        )
+
+        button.layoutParams =
+            LinearLayout.LayoutParams(
+                dp(42),
+                dp(58)
+            )
+
+        return button
+    }
+
+    // ------------------------------------------------------------
+    // MONTH / YEAR PICKER
+    // ------------------------------------------------------------
+
+    private fun showMonthYearPicker() {
+
+        val container =
+            LinearLayout(this)
+
+        container.orientation =
+            LinearLayout.HORIZONTAL
+
+        container.gravity =
+            Gravity.CENTER
+
+        val monthPicker =
+            NumberPicker(this)
+
+        monthPicker.minValue = 1
+        monthPicker.maxValue = 12
+        monthPicker.value =
+            displayedMonth.monthValue
+
+        val yearPicker =
+            NumberPicker(this)
+
+        yearPicker.minValue = 2000
+        yearPicker.maxValue = 2100
+        yearPicker.value =
+            displayedMonth.year
+
+        container.addView(
+            monthPicker,
+            LinearLayout.LayoutParams(
+                dp(110),
+                dp(180)
+            )
+        )
+
+        container.addView(
+            yearPicker,
+            LinearLayout.LayoutParams(
+                dp(120),
+                dp(180)
+            )
+        )
+
+        AlertDialog.Builder(this)
+            .setTitle("Select month")
+            .setView(container)
+            .setNegativeButton(
+                "Cancel",
+                null
+            )
+            .setPositiveButton(
+                "OK"
+            ) { _, _ ->
+
+                displayedMonth =
+                    YearMonth.of(
+                        yearPicker.value,
+                        monthPicker.value
+                    )
+
+                // Keep the selected date sensible.
+                val maxDay =
+                    displayedMonth.lengthOfMonth()
+
+                val newDay =
+                    selectedDate.dayOfMonth
+                        .coerceAtMost(maxDay)
+
+                selectedDate =
+                    displayedMonth.atDay(
+                        newDay
+                    )
+
+                refreshCalendar()
+            }
+            .show()
+    }
+
+    // ------------------------------------------------------------
+    // ADD EVENT
+    // ------------------------------------------------------------
+
+    private fun showAddEventDialog() {
+
+        val input =
+            EditText(this)
+
+        input.hint =
+            "Event name"
+
+        AlertDialog.Builder(this)
+            .setTitle("Add event")
+            .setView(input)
+            .setNegativeButton(
+                "Cancel",
+                null
+            )
+            .setPositiveButton(
+                "Save"
+            ) { _, _ ->
+
+                Toast.makeText(
+                    this,
+                    "Event added",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+            .show()
+    }
+
+    // ------------------------------------------------------------
+    // MENU
+    // ------------------------------------------------------------
+
+    private fun showCalendarMenu() {
+
+        val options =
+            arrayOf(
+                "Today",
+                "Select date",
+                "Settings"
+            )
+
+        AlertDialog.Builder(this)
+            .setItems(options) { _, which ->
+
+                when (which) {
+
+                    0 -> {
+
+                        displayedMonth =
+                            YearMonth.from(today)
+
+                        selectedDate =
+                            today
+
+                        refreshCalendar()
+                    }
+
+                    1 -> showMonthYearPicker()
+
+                    2 -> showSettingsScreen()
+                }
+            }
+            .show()
     }
 
     // ------------------------------------------------------------
@@ -789,16 +1233,16 @@ class MainActivity : Activity() {
 
     private fun buildBottomNavigation() {
 
-        val navigation =
+        val nav =
             LinearLayout(this)
 
-        navigation.orientation =
+        nav.orientation =
             LinearLayout.HORIZONTAL
 
-        navigation.gravity =
+        nav.gravity =
             Gravity.CENTER
 
-        navigation.setBackgroundColor(
+        nav.setBackgroundColor(
             backgroundColor
         )
 
@@ -823,22 +1267,7 @@ class MainActivity : Activity() {
                 false
             )
 
-        homeTab.setOnClickListener {
-            selectTab(0)
-            showHome()
-        }
-
-        eventTab.setOnClickListener {
-            selectTab(1)
-            showEventsScreen()
-        }
-
-        settingsTab.setOnClickListener {
-            selectTab(2)
-            showSettingsScreen()
-        }
-
-        navigation.addView(
+        nav.addView(
             homeTab,
             LinearLayout.LayoutParams(
                 0,
@@ -847,7 +1276,7 @@ class MainActivity : Activity() {
             )
         )
 
-        navigation.addView(
+        nav.addView(
             eventTab,
             LinearLayout.LayoutParams(
                 0,
@@ -856,7 +1285,7 @@ class MainActivity : Activity() {
             )
         )
 
-        navigation.addView(
+        nav.addView(
             settingsTab,
             LinearLayout.LayoutParams(
                 0,
@@ -865,17 +1294,19 @@ class MainActivity : Activity() {
             )
         )
 
-        /*
-         * This navigation is outside contentArea.
-         * Therefore it cannot be hidden behind the calendar.
-         */
-        root.addView(
-            navigation,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(68)
-            )
-        )
+        homeTab.setOnClickListener {
+            selectTab(0)
+        }
+
+        eventTab.setOnClickListener {
+            selectTab(1)
+        }
+
+        settingsTab.setOnClickListener {
+            selectTab(2)
+        }
+
+        root.addView(nav)
     }
 
     private fun navigationItem(
@@ -884,73 +1315,79 @@ class MainActivity : Activity() {
         selected: Boolean
     ): LinearLayout {
 
-        val container =
+        val item =
             LinearLayout(this)
 
-        container.orientation =
+        item.orientation =
             LinearLayout.VERTICAL
 
-        container.gravity =
+        item.gravity =
             Gravity.CENTER
 
-        val iconText =
+        val iconView =
             TextView(this)
 
-        iconText.text =
-            icon
-
-        iconText.textSize =
-            21f
-
-        iconText.gravity =
+        iconView.text = icon
+        iconView.textSize = 23f
+        iconView.gravity =
             Gravity.CENTER
 
-        iconText.setTextColor(
-            if (selected)
-                accentColor
-            else
-                secondaryTextColor
-        )
-
-        val labelText =
+        val labelView =
             TextView(this)
 
-        labelText.text =
-            label
-
-        labelText.textSize =
-            12f
-
-        labelText.gravity =
+        labelView.text = label
+        labelView.textSize = 13f
+        labelView.gravity =
             Gravity.CENTER
 
-        labelText.setTextColor(
-            if (selected)
-                accentColor
-            else
-                secondaryTextColor
-        )
-
-        container.addView(
-            iconText,
+        item.addView(
+            iconView,
             LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(34)
+                dp(32)
             )
         )
 
-        container.addView(
-            labelText,
+        item.addView(
+            labelView,
             LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 dp(24)
             )
         )
 
-        return container
+        item.tag =
+            arrayOf(
+                iconView,
+                labelView
+            )
+
+        updateTabAppearance(
+            item,
+            selected
+        )
+
+        return item
     }
 
-    private fun selectTab(selected: Int) {
+    private fun selectTab(
+        selected: Int
+    ) {
+
+        when (selected) {
+
+            0 -> {
+                showHome()
+            }
+
+            1 -> {
+                showEventsScreen()
+            }
+
+            2 -> {
+                showSettingsScreen()
+            }
+        }
 
         updateTabAppearance(
             homeTab,
@@ -973,11 +1410,14 @@ class MainActivity : Activity() {
         selected: Boolean
     ) {
 
+        val views =
+            tab.tag as Array<*>
+
         val icon =
-            tab.getChildAt(0) as TextView
+            views[0] as TextView
 
         val label =
-            tab.getChildAt(1) as TextView
+            views[1] as TextView
 
         val color =
             if (selected)
@@ -990,7 +1430,7 @@ class MainActivity : Activity() {
     }
 
     // ------------------------------------------------------------
-    // EVENT SCREEN
+    // EVENTS SCREEN
     // ------------------------------------------------------------
 
     private fun showEventsScreen() {
@@ -1003,18 +1443,13 @@ class MainActivity : Activity() {
         screen.orientation =
             LinearLayout.VERTICAL
 
-        screen.setBackgroundColor(
-            backgroundColor
-        )
-
         val title =
             TextView(this)
 
         title.text =
             "Events"
 
-        title.textSize =
-            28f
+        title.textSize = 27f
 
         title.typeface =
             Typeface.DEFAULT_BOLD
@@ -1023,81 +1458,67 @@ class MainActivity : Activity() {
             primaryTextColor
         )
 
-        title.setPadding(
-            0,
-            dp(10),
-            0,
-            dp(20)
-        )
+        title.gravity =
+            Gravity.CENTER_VERTICAL
 
         screen.addView(
             title,
             LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(65)
+                dp(62)
             )
         )
 
-        val add =
-            TextView(this)
+        val scroll =
+            ScrollView(this)
 
-        add.text =
-            "+  Add event"
+        val list =
+            LinearLayout(this)
 
-        add.textSize =
-            16f
+        list.orientation =
+            LinearLayout.VERTICAL
 
-        add.setTextColor(
-            accentColor
-        )
+        for (holiday in indiaHolidays2026) {
 
-        add.gravity =
-            Gravity.CENTER_VERTICAL
+            val row =
+                TextView(this)
 
-        add.setPadding(
-            dp(12),
-            0,
-            0,
-            0
-        )
+            row.text =
+                "${holiday.day} ${monthShort(holiday.month)}  •  ${holiday.name}"
 
-        add.setOnClickListener {
-            showAddEventDialog()
+            row.textSize = 15f
+
+            row.setTextColor(
+                primaryTextColor
+            )
+
+            row.gravity =
+                Gravity.CENTER_VERTICAL
+
+            row.setPadding(
+                dp(10),
+                0,
+                dp(10),
+                0
+            )
+
+            list.addView(
+                row,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    dp(52)
+                )
+            )
         }
 
-        screen.addView(
-            add,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(55)
-            )
-        )
-
-        val info =
-            TextView(this)
-
-        info.text =
-            "Your events will appear here."
-
-        info.textSize =
-            14f
-
-        info.setTextColor(
-            secondaryTextColor
-        )
-
-        info.setPadding(
-            dp(12),
-            dp(20),
-            0,
-            0
-        )
+        scroll.addView(list)
 
         screen.addView(
-            info,
+            scroll,
             LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(60)
+                0,
+                1f
             )
         )
 
@@ -1110,8 +1531,21 @@ class MainActivity : Activity() {
         )
     }
 
+    private fun monthShort(
+        month: Int
+    ): String {
+
+        return java.time.Month.of(month)
+            .name
+            .lowercase(Locale.getDefault())
+            .replaceFirstChar {
+                it.uppercase()
+            }
+            .take(3)
+    }
+
     // ------------------------------------------------------------
-    // SETTINGS SCREEN
+    // SETTINGS
     // ------------------------------------------------------------
 
     private fun showSettingsScreen() {
@@ -1124,18 +1558,13 @@ class MainActivity : Activity() {
         screen.orientation =
             LinearLayout.VERTICAL
 
-        screen.setBackgroundColor(
-            backgroundColor
-        )
-
         val title =
             TextView(this)
 
         title.text =
             "Settings"
 
-        title.textSize =
-            28f
+        title.textSize = 27f
 
         title.typeface =
             Typeface.DEFAULT_BOLD
@@ -1144,22 +1573,16 @@ class MainActivity : Activity() {
             primaryTextColor
         )
 
-        title.setPadding(
-            0,
-            dp(10),
-            0,
-            dp(20)
-        )
+        title.gravity =
+            Gravity.CENTER_VERTICAL
 
         screen.addView(
             title,
             LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(65)
+                dp(62)
             )
         )
-
-        // Theme setting
 
         val themeRow =
             LinearLayout(this)
@@ -1171,60 +1594,52 @@ class MainActivity : Activity() {
             Gravity.CENTER_VERTICAL
 
         themeRow.setPadding(
-            dp(8),
+            dp(5),
             0,
-            dp(8),
+            dp(5),
             0
         )
 
-        val themeLabel =
+        val themeText =
             TextView(this)
 
-        themeLabel.text =
-            "Theme"
+        themeText.text =
+            "Theme\n$currentTheme"
 
-        themeLabel.textSize =
-            17f
+        themeText.textSize = 16f
 
-        themeLabel.setTextColor(
+        themeText.setTextColor(
             primaryTextColor
         )
 
         themeRow.addView(
-            themeLabel,
+            themeText,
             LinearLayout.LayoutParams(
                 0,
-                dp(60),
+                dp(65),
                 1f
             )
         )
 
-        val currentThemeText =
+        val arrow =
             TextView(this)
 
-        currentThemeText.text =
-            currentTheme
+        arrow.text = "›"
+        arrow.textSize = 26f
 
-        currentThemeText.textSize =
-            15f
-
-        currentThemeText.setTextColor(
-            accentColor
+        arrow.setTextColor(
+            secondaryTextColor
         )
 
-        currentThemeText.gravity =
-            Gravity.CENTER
-
         themeRow.addView(
-            currentThemeText,
+            arrow,
             LinearLayout.LayoutParams(
-                dp(100),
-                dp(60)
+                dp(40),
+                dp(65)
             )
         )
 
         themeRow.setOnClickListener {
-
             showThemePicker()
         }
 
@@ -1232,60 +1647,7 @@ class MainActivity : Activity() {
             themeRow,
             LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(60)
-            )
-        )
-
-        // Month selector
-
-        val monthRow =
-            LinearLayout(this)
-
-        monthRow.orientation =
-            LinearLayout.HORIZONTAL
-
-        monthRow.gravity =
-            Gravity.CENTER_VERTICAL
-
-        monthRow.setPadding(
-            dp(8),
-            0,
-            dp(8),
-            0
-        )
-
-        val monthLabel =
-            TextView(this)
-
-        monthLabel.text =
-            "Choose month & year"
-
-        monthLabel.textSize =
-            17f
-
-        monthLabel.setTextColor(
-            primaryTextColor
-        )
-
-        monthRow.addView(
-            monthLabel,
-            LinearLayout.LayoutParams(
-                0,
-                dp(60),
-                1f
-            )
-        )
-
-        monthRow.setOnClickListener {
-
-            showMonthYearPicker()
-        }
-
-        screen.addView(
-            monthRow,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(60)
+                dp(65)
             )
         )
 
@@ -1296,147 +1658,6 @@ class MainActivity : Activity() {
                 FrameLayout.LayoutParams.MATCH_PARENT
             )
         )
-    }
-
-    // ------------------------------------------------------------
-    // MONTH / YEAR PICKER
-    // ------------------------------------------------------------
-
-    private fun showMonthYearPicker() {
-
-        val dialogView =
-            LinearLayout(this)
-
-        dialogView.orientation =
-            LinearLayout.HORIZONTAL
-
-        dialogView.gravity =
-            Gravity.CENTER
-
-        dialogView.setPadding(
-            dp(20),
-            dp(15),
-            dp(20),
-            dp(10)
-        )
-
-        val monthSpinner =
-            Spinner(this)
-
-        val yearSpinner =
-            Spinner(this)
-
-        val months =
-            arrayOf(
-                "January",
-                "February",
-                "March",
-                "April",
-                "May",
-                "June",
-                "July",
-                "August",
-                "September",
-                "October",
-                "November",
-                "December"
-            )
-
-        val years =
-            (2020..2040)
-                .map { it.toString() }
-                .toTypedArray()
-
-        monthSpinner.adapter =
-            ArrayAdapter(
-                this,
-                android.R.layout.simple_spinner_dropdown_item,
-                months
-            )
-
-        yearSpinner.adapter =
-            ArrayAdapter(
-                this,
-                android.R.layout.simple_spinner_dropdown_item,
-                years
-            )
-
-        monthSpinner.setSelection(
-            displayedMonth.monthValue - 1
-        )
-
-        yearSpinner.setSelection(
-            displayedMonth.year - 2020
-        )
-
-        dialogView.addView(
-            monthSpinner,
-            LinearLayout.LayoutParams(
-                0,
-                dp(55),
-                1.5f
-            )
-        )
-
-        dialogView.addView(
-            yearSpinner,
-            LinearLayout.LayoutParams(
-                0,
-                dp(55),
-                1f
-            )
-        )
-
-        val dialog =
-            AlertDialog.Builder(this)
-                .setTitle("Choose month")
-                .setView(dialogView)
-                .setNegativeButton(
-                    "Cancel",
-                    null
-                )
-                .setPositiveButton(
-                    "OK"
-                ) { _, _ ->
-
-                    val month =
-                        monthSpinner.selectedItemPosition + 1
-
-                    val year =
-                        2020 +
-                        yearSpinner.selectedItemPosition
-
-                    displayedMonth =
-                        YearMonth.of(
-                            year,
-                            month
-                        )
-
-                    /*
-                     * If the previously selected date doesn't
-                     * belong to the chosen month, select day 1.
-                     */
-                    val maxDay =
-                        displayedMonth.lengthOfMonth()
-
-                    val day =
-                        selectedDate.dayOfMonth
-                            .coerceAtMost(maxDay)
-
-                    selectedDate =
-                        LocalDate.of(
-                            year,
-                            month,
-                            day
-                        )
-
-                    if (::calendarGrid.isInitialized) {
-                        refreshCalendar()
-                    }
-                }
-                .create()
-
-        dialog.show()
     }
 
     // ------------------------------------------------------------
@@ -1454,18 +1675,11 @@ class MainActivity : Activity() {
                 "Purple"
             )
 
-        var selected =
-            themes.indexOf(currentTheme)
-
-        if (selected < 0) {
-            selected = 0
-        }
-
         AlertDialog.Builder(this)
-            .setTitle("Choose theme")
+            .setTitle("Theme")
             .setSingleChoiceItems(
                 themes,
-                selected
+                themes.indexOf(currentTheme)
             ) { dialog, which ->
 
                 applyTheme(
@@ -1474,10 +1688,6 @@ class MainActivity : Activity() {
 
                 dialog.dismiss()
             }
-            .setNegativeButton(
-                "Cancel",
-                null
-            )
             .show()
     }
 
@@ -1485,7 +1695,9 @@ class MainActivity : Activity() {
     // APPLY THEME
     // ------------------------------------------------------------
 
-    private fun applyTheme(theme: String) {
+    private fun applyTheme(
+        theme: String
+    ) {
 
         currentTheme = theme
 
@@ -1497,16 +1709,16 @@ class MainActivity : Activity() {
                     Color.rgb(250, 250, 250)
 
                 primaryTextColor =
-                    Color.rgb(45, 45, 45)
+                    Color.rgb(38, 38, 38)
 
                 secondaryTextColor =
-                    Color.rgb(105, 105, 105)
+                    Color.rgb(90, 90, 90)
 
                 accentColor =
-                    Color.rgb(65, 125, 220)
+                    Color.rgb(55, 115, 215)
 
                 selectedColor =
-                    Color.rgb(88, 88, 88)
+                    Color.rgb(82, 82, 82)
 
                 dividerColor =
                     Color.rgb(225, 225, 225)
@@ -1521,13 +1733,13 @@ class MainActivity : Activity() {
                     Color.rgb(240, 240, 240)
 
                 secondaryTextColor =
-                    Color.rgb(170, 170, 170)
+                    Color.rgb(175, 175, 175)
 
                 accentColor =
-                    Color.rgb(100, 165, 255)
+                    Color.rgb(90, 150, 245)
 
                 selectedColor =
-                    Color.rgb(105, 105, 105)
+                    Color.rgb(95, 95, 95)
 
                 dividerColor =
                     Color.rgb(65, 65, 65)
@@ -1542,13 +1754,13 @@ class MainActivity : Activity() {
                     Color.rgb(30, 45, 65)
 
                 secondaryTextColor =
-                    Color.rgb(90, 110, 135)
+                    Color.rgb(80, 100, 125)
 
                 accentColor =
                     Color.rgb(45, 115, 220)
 
                 selectedColor =
-                    Color.rgb(55, 105, 180)
+                    Color.rgb(65, 100, 150)
 
                 dividerColor =
                     Color.rgb(215, 225, 240)
@@ -1563,13 +1775,13 @@ class MainActivity : Activity() {
                     Color.rgb(35, 55, 40)
 
                 secondaryTextColor =
-                    Color.rgb(95, 115, 100)
+                    Color.rgb(85, 110, 90)
 
                 accentColor =
-                    Color.rgb(45, 145, 80)
+                    Color.rgb(45, 150, 85)
 
                 selectedColor =
-                    Color.rgb(65, 120, 80)
+                    Color.rgb(65, 105, 75)
 
                 dividerColor =
                     Color.rgb(215, 230, 218)
@@ -1578,22 +1790,22 @@ class MainActivity : Activity() {
             "Purple" -> {
 
                 backgroundColor =
-                    Color.rgb(249, 247, 252)
+                    Color.rgb(249, 246, 252)
 
                 primaryTextColor =
                     Color.rgb(50, 40, 60)
 
                 secondaryTextColor =
-                    Color.rgb(110, 100, 120)
+                    Color.rgb(100, 90, 110)
 
                 accentColor =
-                    Color.rgb(125, 80, 190)
+                    Color.rgb(125, 75, 190)
 
                 selectedColor =
-                    Color.rgb(105, 75, 135)
+                    Color.rgb(90, 70, 105)
 
                 dividerColor =
-                    Color.rgb(225, 215, 235)
+                    Color.rgb(225, 215, 232)
             }
         }
 
@@ -1605,37 +1817,16 @@ class MainActivity : Activity() {
             backgroundColor
         )
 
-        if (::contentArea.isInitialized) {
-            contentArea.setBackgroundColor(
-                backgroundColor
-            )
-        }
+        showHome()
 
-        /*
-         * Rebuild whichever screen is currently selected.
-         */
-        if (::settingsTab.isInitialized) {
-
-            val settingsSelected =
-                settingsTab
-                    .getChildAt(1)
-                    ?.let {
-                        (it as TextView)
-                            .currentTextColor == accentColor
-                    } == true
-
-            if (settingsSelected) {
-                showSettingsScreen()
-                selectTab(2)
-            } else {
-                showHome()
-                selectTab(0)
-            }
-        }
+        updateTabAppearance(
+            homeTab,
+            true
+        )
     }
 
     // ------------------------------------------------------------
-    // SAVE THEME
+    // PREFERENCES
     // ------------------------------------------------------------
 
     private fun saveTheme() {
@@ -1652,10 +1843,6 @@ class MainActivity : Activity() {
             .apply()
     }
 
-    // ------------------------------------------------------------
-    // LOAD THEME
-    // ------------------------------------------------------------
-
     private fun loadTheme() {
 
         currentTheme =
@@ -1666,12 +1853,14 @@ class MainActivity : Activity() {
                 .getString(
                     themeKey,
                     "Light"
-                )
-                ?: "Light"
+                ) ?: "Light"
 
-        /*
-         * Set colors without rebuilding the UI.
-         */
+        // Set initial colors.
+        applyThemeColorsOnly()
+    }
+
+    private fun applyThemeColorsOnly() {
+
         when (currentTheme) {
 
             "Dark" -> {
@@ -1683,13 +1872,16 @@ class MainActivity : Activity() {
                     Color.rgb(240, 240, 240)
 
                 secondaryTextColor =
-                    Color.rgb(170, 170, 170)
+                    Color.rgb(175, 175, 175)
 
                 accentColor =
-                    Color.rgb(100, 165, 255)
+                    Color.rgb(90, 150, 245)
 
                 selectedColor =
-                    Color.rgb(105, 105, 105)
+                    Color.rgb(95, 95, 95)
+
+                dividerColor =
+                    Color.rgb(65, 65, 65)
             }
 
             "Blue" -> {
@@ -1701,13 +1893,16 @@ class MainActivity : Activity() {
                     Color.rgb(30, 45, 65)
 
                 secondaryTextColor =
-                    Color.rgb(90, 110, 135)
+                    Color.rgb(80, 100, 125)
 
                 accentColor =
                     Color.rgb(45, 115, 220)
 
                 selectedColor =
-                    Color.rgb(55, 105, 180)
+                    Color.rgb(65, 100, 150)
+
+                dividerColor =
+                    Color.rgb(215, 225, 240)
             }
 
             "Green" -> {
@@ -1719,184 +1914,73 @@ class MainActivity : Activity() {
                     Color.rgb(35, 55, 40)
 
                 secondaryTextColor =
-                    Color.rgb(95, 115, 100)
+                    Color.rgb(85, 110, 90)
 
                 accentColor =
-                    Color.rgb(45, 145, 80)
+                    Color.rgb(45, 150, 85)
 
                 selectedColor =
-                    Color.rgb(65, 120, 80)
+                    Color.rgb(65, 105, 75)
+
+                dividerColor =
+                    Color.rgb(215, 230, 218)
             }
 
             "Purple" -> {
 
                 backgroundColor =
-                    Color.rgb(249, 247, 252)
+                    Color.rgb(249, 246, 252)
 
                 primaryTextColor =
                     Color.rgb(50, 40, 60)
 
                 secondaryTextColor =
-                    Color.rgb(110, 100, 120)
+                    Color.rgb(100, 90, 110)
 
                 accentColor =
-                    Color.rgb(125, 80, 190)
+                    Color.rgb(125, 75, 190)
 
                 selectedColor =
-                    Color.rgb(105, 75, 135)
+                    Color.rgb(90, 70, 105)
+
+                dividerColor =
+                    Color.rgb(225, 215, 232)
+            }
+
+            else -> {
+
+                backgroundColor =
+                    Color.rgb(250, 250, 250)
+
+                primaryTextColor =
+                    Color.rgb(38, 38, 38)
+
+                secondaryTextColor =
+                    Color.rgb(90, 90, 90)
+
+                accentColor =
+                    Color.rgb(55, 115, 215)
+
+                selectedColor =
+                    Color.rgb(82, 82, 82)
+
+                dividerColor =
+                    Color.rgb(225, 225, 225)
             }
         }
-    }
-
-    // ------------------------------------------------------------
-    // ADD EVENT
-    // ------------------------------------------------------------
-
-    private fun showAddEventDialog() {
-
-        val input =
-            EditText(this)
-
-        input.hint =
-            "Event name"
-
-        input.setSingleLine(true)
-
-        val container =
-            LinearLayout(this)
-
-        container.setPadding(
-            dp(24),
-            dp(5),
-            dp(24),
-            dp(5)
-        )
-
-        container.addView(
-            input,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(55)
-            )
-        )
-
-        AlertDialog.Builder(this)
-            .setTitle(
-                "Add event"
-            )
-            .setView(container)
-            .setNegativeButton(
-                "Cancel",
-                null
-            )
-            .setPositiveButton(
-                "Save"
-            ) { _, _ ->
-
-                val name =
-                    input.text.toString().trim()
-
-                if (name.isNotEmpty()) {
-
-                    Toast.makeText(
-                        this,
-                        "Event saved",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-            .show()
-    }
-
-    // ------------------------------------------------------------
-    // MENU
-    // ------------------------------------------------------------
-
-    private fun showCalendarMenu() {
-
-        val options =
-            arrayOf(
-                "Choose month & year",
-                "Go to today",
-                "Settings"
-            )
-
-        AlertDialog.Builder(this)
-            .setItems(
-                options
-            ) { _, which ->
-
-                when (which) {
-
-                    0 ->
-                        showMonthYearPicker()
-
-                    1 -> {
-
-                        displayedMonth =
-                            YearMonth.from(today)
-
-                        selectedDate =
-                            today
-
-                        refreshCalendar()
-                    }
-
-                    2 -> {
-
-                        selectTab(2)
-
-                        showSettingsScreen()
-                    }
-                }
-            }
-            .show()
-    }
-
-    // ------------------------------------------------------------
-    // HEADER BUTTON
-    // ------------------------------------------------------------
-
-    private fun headerButton(
-        symbol: String,
-        size: Float
-    ): TextView {
-
-        val button =
-            TextView(this)
-
-        button.text =
-            symbol
-
-        button.textSize =
-            size
-
-        button.setTextColor(
-            primaryTextColor
-        )
-
-        button.gravity =
-            Gravity.CENTER
-
-        button.setPadding(
-            dp(5),
-            0,
-            dp(5),
-            0
-        )
-
-        return button
     }
 
     // ------------------------------------------------------------
     // DP
     // ------------------------------------------------------------
 
-    private fun dp(value: Int): Int {
+    private fun dp(
+        value: Int
+    ): Int {
 
         return (
-            value *
-            resources.displayMetrics.density
-        ).toInt()
+                value *
+                        resources.displayMetrics.density
+                ).toInt()
     }
 }
